@@ -201,6 +201,23 @@
         <span class="close" onclick="closeSoldOutHistoryModal()"
           style="color: rgba(255,255,255,0.8); font-size: 22px; cursor: pointer;">&times;</span>
       </div>
+      <div
+        style="padding: 10px 20px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+        <input type="date" id="slFilterDate" oninput="if(window.renderSoldOutHistory) window.renderSoldOutHistory()"
+          style="padding: 6px; font-size: 11px; border: 1px solid #cbd5e1; border-radius: 4px;" title="Date Sold">
+        <input type="text" id="slFilterInvoice" oninput="if(window.renderSoldOutHistory) window.renderSoldOutHistory()"
+          placeholder="Invoice No"
+          style="padding: 6px; font-size: 11px; border: 1px solid #cbd5e1; border-radius: 4px; width: 100px;">
+        <input type="text" id="slFilterBatch" oninput="if(window.renderSoldOutHistory) window.renderSoldOutHistory()"
+          placeholder="Batch"
+          style="padding: 6px; font-size: 11px; border: 1px solid #cbd5e1; border-radius: 4px; width: 100px;">
+        <input type="text" id="slFilterMedicine" oninput="if(window.renderSoldOutHistory) window.renderSoldOutHistory()"
+          placeholder="Medicine Name"
+          style="padding: 6px; font-size: 11px; border: 1px solid #cbd5e1; border-radius: 4px; width: 130px;">
+        <input type="text" id="slFilterDistributor"
+          oninput="if(window.renderSoldOutHistory) window.renderSoldOutHistory()" placeholder="Distributor"
+          style="padding: 6px; font-size: 11px; border: 1px solid #cbd5e1; border-radius: 4px; width: 100px;">
+      </div>
       <div style="padding: 20px; overflow-y: auto; flex: 1;">
         <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left;">
           <thead>
@@ -215,6 +232,7 @@
               <th style="padding: 10px; color: #334155; font-weight: 800;">Sold Qty</th>
               <th style="padding: 10px; color: #334155;">MRP</th>
               <th style="padding: 10px; color: #334155;">Buyer Details</th>
+              <th style="padding: 10px; color: #334155; text-align: center;">Action</th>
             </tr>
           </thead>
           <tbody id="soldOutHistoryTbody">
@@ -1030,10 +1048,7 @@
                             HSN</th>
                           <th
                             style="border-right: 1px solid #000; padding: 2px 4px; font-size: 9px; font-weight: 800; color: #000;">
-                            Qty</th>
-                          <th
-                            style="border-right: 1px solid #000; padding: 2px 4px; font-size: 9px; font-weight: 800; color: #000;">
-                            Free</th>
+                            Qty + Free</th>
                           <th
                             style="border-right: 1px solid #000; padding: 2px 4px; font-size: 9px; font-weight: 800; color: #000;">
                             M.R.P</th>
@@ -1079,13 +1094,9 @@
                           <td style="border-right: 1px solid #000; padding: 4px;"><input type="text" id="invHSN"
                               style="width: 100%; min-width: 40px; border: none; background: transparent; outline: none; font-size: 12px; text-align: center; color: #000; padding: 0;">
                           </td>
-                          <td style="border-right: 1px solid #000; padding: 4px;"><input type="number" step="any"
-                              id="invQty" required oninput="calculateInvAmount()"
+                          <td style="border-right: 1px solid #000; padding: 4px;"><input type="text" id="invQty"
+                              required oninput="calculateInvAmount()" placeholder="e.g. 10+2"
                               style="width: 100%; min-width: 40px; border: none; background: transparent; outline: none; font-size: 12px; font-weight: 800; color: #000; text-align: right; padding: 0;">
-                          </td>
-                          <td style="border-right: 1px solid #000; padding: 4px;"><input type="number" step="any"
-                              id="invFree"
-                              style="width: 100%; min-width: 40px; border: none; background: transparent; outline: none; font-size: 12px; text-align: right; color: #000; padding: 0;">
                           </td>
                           <td style="border-right: 1px solid #000; padding: 4px;"><input type="number" step="any"
                               id="invMRP"
@@ -1145,9 +1156,9 @@
                       style="background: #10b981; color: white; border: none; padding: 4px 12px; border-radius: 4px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 4px; font-size: 11px; box-shadow: 0 4px 6px rgba(16, 185, 129, 0.2); transition: transform 0.1s;">
                       <i class="fas fa-plus"></i> Add Row
                     </button>
-                    <button type="button" onclick="clearInventoryForm()"
+                    <button type="button" onclick="clearRecentInventoryRow()"
                       style="background: #f1f5f9; border: 1px solid #cbd5e1; padding: 4px 12px; border-radius: 4px; font-size: 11px; font-weight: 800; color: #475569; cursor: pointer; transition: all 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 4px;">
-                      <i class="fas fa-eraser"></i> Clear Entry
+                      <i class="fas fa-eraser"></i> Clear Recent Row
                     </button>
                     <button type="button" id="btnSaveInventory" onclick="saveBillItem()"
                       style="background: #000; color: white; border: none; padding: 4px 15px; border-radius: 4px; font-weight: 800; font-size: 11px; cursor: pointer; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.2); transition: transform 0.1s;">
@@ -1487,10 +1498,7 @@
                             HSN</th>
                           <th
                             style="border-right: 1px solid #000; padding: 2px 4px; font-size: 9px; font-weight: 800; color: #000;">
-                            Return<br>Qty</th>
-                          <th
-                            style="border-right: 1px solid #000; padding: 2px 4px; font-size: 9px; font-weight: 800; color: #000;">
-                            Free</th>
+                            Return Qty<br>+ Free</th>
                           <th
                             style="border-right: 1px solid #000; padding: 2px 4px; font-size: 9px; font-weight: 800; color: #000;">
                             M.R.P</th>
@@ -1543,13 +1551,9 @@
                           <td style="border-right: 1px solid #000; padding: 4px;"><input type="text" id="srHSN"
                               style="width: 100%; min-width: 40px; border: none; background: transparent; outline: none; font-size: 12px; text-align: center; color: #000; padding: 0;">
                           </td>
-                          <td style="border-right: 1px solid #000; padding: 4px;"><input type="number" step="any"
-                              id="srQty" required oninput="calculateSrAmount()"
+                          <td style="border-right: 1px solid #000; padding: 4px;"><input type="text" id="srQty" required
+                              oninput="calculateSrAmount()" placeholder="e.g. 10+2"
                               style="width: 100%; min-width: 40px; border: none; background: transparent; outline: none; font-size: 12px; font-weight: 800; color: #000; text-align: right; padding: 0;">
-                          </td>
-                          <td style="border-right: 1px solid #000; padding: 4px;"><input type="number" step="any"
-                              id="srFree"
-                              style="width: 100%; min-width: 40px; border: none; background: transparent; outline: none; font-size: 12px; text-align: right; color: #000; padding: 0;">
                           </td>
                           <td style="border-right: 1px solid #000; padding: 4px;"><input type="number" step="any"
                               id="srMRP"
@@ -1616,9 +1620,9 @@
                       style="background: #10b981; color: white; border: none; padding: 4px 12px; border-radius: 4px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 4px; font-size: 11px; box-shadow: 0 4px 6px rgba(16, 185, 129, 0.2); transition: transform 0.1s;">
                       <i class="fas fa-plus"></i> Add Row
                     </button>
-                    <button type="button" onclick="clearSrForm()"
+                    <button type="button" onclick="clearRecentSrRow()"
                       style="background: #f1f5f9; border: 1px solid #cbd5e1; padding: 4px 12px; border-radius: 4px; font-size: 11px; font-weight: 800; color: #475569; cursor: pointer; transition: all 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 4px;">
-                      <i class="fas fa-eraser"></i> Clear Entry
+                      <i class="fas fa-eraser"></i> Clear Recent Row
                     </button>
                     <button type="button" id="btnSaveSr" onclick="saveSrItem()"
                       style="background: #000; color: white; border: none; padding: 4px 15px; border-radius: 4px; font-weight: 800; font-size: 11px; cursor: pointer; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.2); transition: transform 0.1s;">
@@ -2211,56 +2215,8 @@
 
             <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
             <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-            <script src="script_inventory.js"></script>
-            <script src="ocr.js"></script>
-            <!-- Expiry Alert Popup Modal -->
-            <div id="expiryAlertModalPopup" onclick="if(event.target===this) this.style.display='none'"
-              style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 10000; align-items: center; justify-content: center;">
-              <div
-                style="background: white; border-radius: 8px; width: 320px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); overflow: hidden; position: relative; animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
-                <div
-                  style="background: var(--header-grad); padding: 10px 15px; color: white; display: flex; align-items: center; justify-content: space-between;">
-                  <div style="font-weight: 700; font-size: 14px; display: flex; align-items: center; gap: 8px;">
-                    <i class="fas fa-bell"></i> Inventory Alerts
-                  </div>
-                  <i class="fas fa-times"
-                    onclick="document.getElementById('expiryAlertModalPopup').style.display='none'"
-                    style="cursor: pointer; font-size: 16px;"></i>
-                </div>
-                <div style="padding: 15px; font-size: 12px; font-weight: 600; color: #334155;">
-                  <div
-                    onclick="document.getElementById('expiryAlertModalPopup').style.display='none'; if(typeof openExpiryModuleModal === 'function') openExpiryModuleModal(true); setTimeout(() => { if(typeof switchExpiryTab === 'function') switchExpiryTab('expired'); }, 50);"
-                    style="display: flex; justify-content: space-between; align-items: center; padding: 8px; border-radius: 4px; background: #fee2e2; margin-bottom: 8px; cursor: pointer; transition: transform 0.1s;">
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                      <i class="fas fa-exclamation-circle" style="color: #e11d48;"></i>
-                      <span>Expired Items</span>
-                    </div>
-                    <span id="popupExpiredCount"
-                      style="background: #e11d48; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">0</span>
-                  </div>
-                  <div
-                    onclick="document.getElementById('expiryAlertModalPopup').style.display='none'; if(typeof openExpiryModuleModal === 'function') openExpiryModuleModal(true); setTimeout(() => { if(typeof switchExpiryTab === 'function') switchExpiryTab('expiring_soon'); }, 50);"
-                    style="display: flex; justify-content: space-between; align-items: center; padding: 8px; border-radius: 4px; background: #ffedd5; margin-bottom: 8px; cursor: pointer; transition: transform 0.1s;">
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                      <i class="fas fa-clock" style="color: #d97706;"></i>
-                      <span>Expiring Soon (&le; 15 Days)</span>
-                    </div>
-                    <span id="popupExpiringSoonCount"
-                      style="background: #d97706; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">0</span>
-                  </div>
-                  <div
-                    onclick="document.getElementById('expiryAlertModalPopup').style.display='none'; if(typeof openExpiryModuleModal === 'function') openExpiryModuleModal(true); setTimeout(() => { if(typeof switchExpiryTab === 'function') switchExpiryTab('lowstock'); }, 50);"
-                    style="display: flex; justify-content: space-between; align-items: center; padding: 8px; border-radius: 4px; background: #eff6ff; cursor: pointer; transition: transform 0.1s;">
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                      <i class="fas fa-boxes" style="color: #2563eb;"></i>
-                      <span>Low Stock Items</span>
-                    </div>
-                    <span id="popupLowStockCount"
-                      style="background: #2563eb; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">0</span>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <script src="script_inventory.js?v=20260706_8"></script>
+            <script src="ocr.js?v=20260706"></script>
             <!-- Index Mapping Modal -->
             <div id="indexMappingModal"
               style="display: none; position: fixed; top: 65px; left: 0; width: 100%; height: calc(100vh - 65px); background: #f1f5f9; z-index: 1000; overflow-y: auto;">
@@ -2437,6 +2393,19 @@
 
               <!-- History Tab -->
               <div id="paymentsHistoryView" style="display: none;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 15px; align-items: center;">
+                  <div style="display: flex; gap: 10px; align-items: center;">
+                    <label style="font-size: 12px; font-weight: 600; color: #475569;">Filter by Distributor:</label>
+                    <select id="paymentHistoryDistributorFilter" onchange="renderPaymentHistory()"
+                      style="padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 12px; outline: none; min-width: 150px;">
+                      <option value="">All Distributors</option>
+                    </select>
+                  </div>
+                  <button onclick="printPaymentStatement()"
+                    style="background: #3b82f6; color: white; border: none; padding: 6px 15px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);">
+                    <i class="fas fa-print"></i> Print Statement
+                  </button>
+                </div>
                 <table style="width: 100%; border-collapse: collapse; text-align: left;">
                   <thead>
                     <tr style="background: #0f766e; border-bottom: 2px solid #0d9488;">
@@ -2471,7 +2440,7 @@
         <!-- Print Receipt Template (Hidden from screen, used only for printing) -->
         <div id="paymentReceiptPrintArea" style="display: none;">
           <div
-            style="font-family: 'Times New Roman', Times, serif; width: 100%; max-width: 800px; margin: 0 auto; padding: 20px; border: 1px solid #000;">
+            style="font-family: 'Times New Roman', Times, serif; width: 100%; max-width: 800px; margin: 0 auto; padding: 20px; border: 1px solid #000; box-sizing: border-box;">
             <!-- Header -->
             <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px;">
               <h3 style="margin: 10px 0 0 0; font-size: 20px; text-transform: uppercase;">PAYMENT RECORD</h3>
@@ -2498,23 +2467,68 @@
 
             <!-- Financial Breakdown -->
             <table style="width: 100%; border-collapse: collapse; margin-bottom: 40px; font-size: 14px;">
-              <tr>
-                <td style="border: 1px solid #000; padding: 10px; font-weight: bold;">Previous Balance</td>
-                <td style="border: 1px solid #000; padding: 10px; text-align: right;" id="printPrevBalance"></td>
+              <tr style="border-bottom: 1px solid #000;">
+                <th style="padding: 8px 0; text-align: left;">Description</th>
+                <th style="padding: 8px 0; text-align: right;">Amount</th>
               </tr>
               <tr>
-                <td style="border: 1px solid #000; padding: 10px; font-weight: bold;">Amount Paid</td>
-                <td style="border: 1px solid #000; padding: 10px; text-align: right; color: green; font-size: 16px;"
-                  id="printAmountPaid"></td>
+                <td style="padding: 8px 0;">Previous Balance</td>
+                <td style="padding: 8px 0; text-align: right;" id="printPrevBalance"></td>
               </tr>
               <tr>
-                <td style="border: 1px solid #000; padding: 10px; font-weight: bold;">Remaining Balance</td>
-                <td style="border: 1px solid #000; padding: 10px; text-align: right;" id="printRemainingBalance"></td>
+                <td style="padding: 8px 0; font-weight: bold;">Amount Paid</td>
+                <td style="padding: 8px 0; text-align: right; font-weight: bold;" id="printAmountPaid"></td>
+              </tr>
+              <tr style="border-top: 1px solid #000;">
+                <td style="padding: 8px 0; font-weight: bold;">Remaining Balance</td>
+                <td style="padding: 8px 0; text-align: right; font-weight: bold;" id="printRemainingBalance"></td>
               </tr>
             </table>
 
+            <!-- Footer -->
+            <div style="text-align: center; font-size: 12px; color: #555;">
+              <p style="margin: 5px 0;">Generated by Shehjar Medicate Inventory System</p>
+            </div>
           </div>
         </div>
+
+        <!-- Print Statement Template (Hidden from screen, used only for printing statement) -->
+        <div id="paymentStatementPrintArea" style="display: none;">
+          <div
+            style="font-family: 'Times New Roman', Times, serif; width: 100%; max-width: 800px; margin: 0 auto; padding: 20px; border: 1px solid #000; box-sizing: border-box;">
+            <!-- Header -->
+            <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px;">
+              <h3 style="margin: 10px 0 0 0; font-size: 20px; text-transform: uppercase;">PAYMENT STATEMENT</h3>
+              <p style="margin: 5px 0;" id="printStatementDistributor"></p>
+            </div>
+
+            <table
+              style="width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; margin-bottom: 20px;">
+              <thead>
+                <tr style="border-bottom: 2px solid #000;">
+                  <th style="padding: 8px 10px;">Date</th>
+                  <th style="padding: 8px 10px;">Receipt No</th>
+                  <th style="padding: 8px 10px;">Distributor</th>
+                  <th style="padding: 8px 10px; text-align: right;">Amount Paid</th>
+                  <th style="padding: 8px 10px; text-align: right;">Mode</th>
+                </tr>
+              </thead>
+              <tbody id="printStatementTableBody">
+              </tbody>
+            </table>
+
+            <div style="text-align: right; border-top: 2px solid #000; padding-top: 10px; margin-bottom: 30px;">
+              <strong>Total Amount Paid: </strong>
+              <span id="printStatementTotalAmount" style="font-size: 16px; font-weight: bold;"></span>
+            </div>
+
+            <!-- Footer -->
+            <div style="text-align: center; font-size: 12px; color: #555;">
+              <p style="margin: 5px 0;">Generated by Shehjar Medicate Inventory System</p>
+            </div>
+          </div>
+        </div>
+
 
         <!-- Access Key Modal -->
         <div id="accessKeyModal"
