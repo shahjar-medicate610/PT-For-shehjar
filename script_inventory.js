@@ -455,16 +455,13 @@ function clearInventoryForm() {
     calculateInventoryTotals();
   }
 }
-window.clearRecentInventoryRow = function() {
-  const rows = document.querySelectorAll("#billTableBody tr.added-row");
-  if (rows.length > 0) {
-    rows[rows.length - 1].remove();
+window.deleteInventoryRow = function(btn) {
+  const tr = btn.closest('tr');
+  if (tr) {
+    tr.remove();
     if (typeof calculateInventoryTotals === 'function') {
       calculateInventoryTotals();
     }
-  } else {
-    // If no added rows exist, just clear the input form
-    clearInventoryForm();
   }
 }
 // Fetch Inventory Data
@@ -979,7 +976,8 @@ window.editInventoryStockItem = async function (invoiceNo) {
       <td style="border-right: 1px solid #000; padding: 4px;"><input type="number" step="any" class="col-cgst-amt" value="${cgstAmt.toFixed(2)}" readonly tabindex="-1" style="width: 100%; border: none; background: transparent; outline: none; font-size: 11px; text-align: right;"></td>
       <td style="border-right: 1px solid #000; padding: 4px;"><input type="number" step="any" class="col-rate" value="${item.Rate || item.rate || ''}" oninput="calculateAddedRowAmount(this)" style="width: 100%; border: none; background: transparent; outline: none; font-size: 11px; text-align: right;"></td>
       <td style="border-right: 1px solid #000; padding: 4px;"><input type="number" step="any" class="col-amount" value="${rowAmount.toFixed(2)}" data-lot-rate="${item.LotRate || item.lotRate || item.lotrate || ''}" readonly tabindex="-1" style="width: 100%; border: none; background: transparent; outline: none; font-size: 11px; text-align: right; font-weight: bold;"></td>
-      <td style="padding: 4px;"><input type="text" class="col-company" value="${item.Company || item.company || ''}" oninput="calculateAddedRowAmount(this)" style="width: 100%; border: none; background: transparent; outline: none; font-size: 11px; text-align: left; text-transform: uppercase;"></td>
+      <td style="border-right: 1px solid #000; padding: 4px;"><input type="text" class="col-company" value="${item.Company || item.company || ''}" oninput="calculateAddedRowAmount(this)" style="width: 100%; border: none; background: transparent; outline: none; font-size: 11px; text-align: left; text-transform: uppercase;"></td>
+      <td style="padding: 4px; text-align: center;"><button type="button" tabindex="-1" onclick="deleteInventoryRow(this)" style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 2px;"><i class="fas fa-trash-alt"></i></button></td>
     `;
     tbody.insertBefore(tr, inputRow);
   });
@@ -1122,7 +1120,8 @@ function addInventoryRow() {
     <td style="border-right: 1px solid #000; padding: 4px;"><input type="number" step="any" class="col-cgst-amt" value="${vals.invCGSTAmt}" readonly tabindex="-1" style="width: 100%; border: none; background: transparent; outline: none; font-size: 11px; text-align: right;"></td>
     <td style="border-right: 1px solid #000; padding: 4px;"><input type="number" step="any" class="col-rate" value="${vals.invRate}" oninput="calculateAddedRowAmount(this)" style="width: 100%; border: none; background: transparent; outline: none; font-size: 11px; text-align: right;"></td>
     <td style="border-right: 1px solid #000; padding: 4px;"><input type="number" step="any" class="col-amount" value="${vals.invAmount}" data-lot-rate="${lotRate}" readonly tabindex="-1" style="width: 100%; border: none; background: transparent; outline: none; font-size: 11px; text-align: right; font-weight: bold;"></td>
-    <td style="padding: 4px;"><input type="text" class="col-company" value="${vals.invCompany}" oninput="calculateAddedRowAmount(this)" style="width: 100%; border: none; background: transparent; outline: none; font-size: 11px; text-align: left; text-transform: uppercase;"></td>
+    <td style="border-right: 1px solid #000; padding: 4px;"><input type="text" class="col-company" value="${vals.invCompany}" oninput="calculateAddedRowAmount(this)" style="width: 100%; border: none; background: transparent; outline: none; font-size: 11px; text-align: left; text-transform: uppercase;"></td>
+    <td style="padding: 4px; text-align: center;"><button type="button" tabindex="-1" onclick="deleteInventoryRow(this)" style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 2px;"><i class="fas fa-trash-alt"></i></button></td>
   `;
   document.getElementById("billTableBody").insertBefore(tr, document.getElementById("inputRow"));
   clearInventoryForm();
@@ -1548,17 +1547,17 @@ window.saveBillItem = async function () {
             throw new Error("Failed to clear old invoice: " + (delData.message || ""));
           }
         }
-        const promises = items.map(item => {
-          item.action = "add_inventory";
-          return fetch(WEB_APP_URL, {
-            method: "POST",
-            body: JSON.stringify(item)
-          }).then(res => res.json());
+        const bulkPayload = {
+          action: "bulk_save_inventory",
+          items: items
+        };
+        const bulkRes = await fetch(WEB_APP_URL, {
+          method: "POST",
+          body: JSON.stringify(bulkPayload)
         });
-        const results = await Promise.all(promises);
-        const failed = results.find(r => !r.success);
-        if (failed) {
-          throw new Error(failed.message || "Action not recognized or save failed.");
+        const bulkData = await bulkRes.json();
+        if (!bulkData.success) {
+          throw new Error(bulkData.message || "Bulk save failed.");
         }
         fetchInventory();
       } catch (err) {
@@ -2968,7 +2967,8 @@ window.addSrRow = function () {
     <td style="border-right: 1px solid #000; padding: 4px;"><input type="number" step="any" class="col-amount" value="${vals.srAmount}" readonly tabindex="-1" style="width: 100%; border: none; background: transparent; outline: none; font-size: 11px; text-align: right; font-weight: bold;"></td>
     <td style="border-right: 1px solid #000; padding: 4px;"><input type="text" class="col-company" value="${vals.srCompany}" oninput="calculateAddedSrRowAmount(this)" style="width: 100%; border: none; background: transparent; outline: none; font-size: 11px; text-align: left; text-transform: uppercase;"></td>
     <td style="border-right: 1px solid #000; padding: 4px;"><input type="text" class="col-orig-invoice-no" value="${vals.srOrigInvoiceNo}" readonly tabindex="-1" style="width: 100%; border: none; background: transparent; outline: none; font-size: 11px; text-align: left;"></td>
-    <td style="padding: 4px;"><input type="text" class="col-orig-buyer-id" value="${vals.srOrigBuyerId}" readonly tabindex="-1" style="width: 100%; border: none; background: transparent; outline: none; font-size: 11px; text-align: left;"></td>
+    <td style="border-right: 1px solid #000; padding: 4px;"><input type="text" class="col-orig-buyer-id" value="${vals.srOrigBuyerId}" readonly tabindex="-1" style="width: 100%; border: none; background: transparent; outline: none; font-size: 11px; text-align: left;"></td>
+    <td style="padding: 4px; text-align: center;"><button type="button" tabindex="-1" onclick="deleteSrRow(this)" style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 2px;"><i class="fas fa-trash-alt"></i></button></td>
   `;
   const inputRow = document.getElementById("srInputRow");
   if (inputRow) tbody.insertBefore(tr, inputRow);
@@ -3060,16 +3060,13 @@ window.clearSrForm = function () {
   });
   if (document.getElementById('srProductName')) document.getElementById('srProductName').focus();
 };
-window.clearRecentSrRow = function () {
-  const rows = document.querySelectorAll("#srTableBody tr.added-row");
-  if (rows.length > 0) {
-    rows[rows.length - 1].remove();
+window.deleteSrRow = function (btn) {
+  const tr = btn.closest('tr');
+  if (tr) {
+    tr.remove();
     if (typeof window.calculateSrTotals === 'function') {
       window.calculateSrTotals();
     }
-  } else {
-    // If no added rows exist, just clear the input form
-    window.clearSrForm();
   }
 };
 window.clearEntireSrBill = async function (skipConfirm = false) {
@@ -4009,7 +4006,7 @@ window.renderStockManagementTable = function () {
     html += "<td style='font-size: 11px;'>" + (item.Date || item.date || '-') + "</td>";
     html += "<td style='text-align: center;'>";
     if (availQty > 0) {
-      html += "<button type='button' class='btn' style='background: #fef08a; color: #854d0e; padding: 4px 8px; border-radius: 4px; border: none; cursor: pointer; font-size: 10px; font-weight: bold; width: 100%;' title='Return this item' onclick='window.returnItemToSalesReturn(\"" + encodeURIComponent(JSON.stringify(item)) + "\", " + availQty + ", this)'><i class='fas fa-undo'></i> Return</button>";
+      html += "<button type='button' class='btn' style='background: #fef08a; color: #854d0e; padding: 4px 8px; border-radius: 4px; border: none; cursor: pointer; font-size: 10px; font-weight: bold; width: 100%;' title='Return this item' onclick='window.returnItemToSalesReturn(\"" + encodeURIComponent(JSON.stringify(item)).replace(/'/g, "%27") + "\", " + availQty + ", this)'><i class='fas fa-undo'></i> Return</button>";
     } else {
       html += "<span style='font-size: 10px; color: #94a3b8; font-weight: bold;'>Returned</span>";
     }
@@ -4267,8 +4264,7 @@ window.editSalesReturnItem = async function (invoiceNo) {
       <td style="border-right: 1px solid #000; padding: 4px;"><input type="text" class="col-product" value="${prodName}" oninput="calculateAddedSrRowAmount(this)" style="width: 100%; min-width: 140px; border: none; background: transparent; outline: none; font-size: 11px; text-align: left;"></td>
       <td style="border-right: 1px solid #000; padding: 4px;"><input type="text" class="col-pack" value="${pack}" oninput="calculateAddedSrRowAmount(this)" style="width: 100%; border: none; background: transparent; outline: none; font-size: 11px; text-align: center;"></td>
       <td style="border-right: 1px solid #000; padding: 4px;"><input type="text" class="col-hsn" value="${hsn}" oninput="calculateAddedSrRowAmount(this)" style="width: 100%; border: none; background: transparent; outline: none; font-size: 11px; text-align: center;"></td>
-      <td style="border-right: 1px solid #000; padding: 4px;"><input type="number" step="any" class="col-qty" value="${qty}" oninput="calculateAddedSrRowAmount(this)" style="width: 100%; border: none; background: transparent; outline: none; font-size: 11px; text-align: right;"></td>
-      <td style="border-right: 1px solid #000; padding: 4px;"><input type="number" step="any" class="col-free" value="${free}" oninput="calculateAddedSrRowAmount(this)" style="width: 100%; border: none; background: transparent; outline: none; font-size: 11px; text-align: right;"></td>
+      <td style="border-right: 1px solid #000; padding: 4px;"><input type="text" class="col-qty" value="${qty + (free && parseFloat(free) > 0 ? '+' + free : '')}" oninput="calculateAddedSrRowAmount(this)" style="width: 100%; border: none; background: transparent; outline: none; font-size: 11px; text-align: right;"></td>
       <td style="border-right: 1px solid #000; padding: 4px;"><input type="number" step="any" class="col-mrp" value="${mrp}" oninput="calculateAddedSrRowAmount(this)" style="width: 100%; border: none; background: transparent; outline: none; font-size: 11px; text-align: right;"></td>
       <td style="border-right: 1px solid #000; padding: 4px;"><input type="text" class="col-batch" value="${batch}" oninput="calculateAddedSrRowAmount(this)" style="width: 100%; border: none; background: transparent; outline: none; font-size: 11px; text-align: center;"></td>
       <td style="border-right: 1px solid #000; padding: 4px;"><input type="text" class="col-exp" value="${formattedExp}" oninput="if(typeof formatExpiryInput === 'function') formatExpiryInput(event); calculateAddedSrRowAmount(this)" style="width: 100%; border: none; background: transparent; outline: none; font-size: 11px; text-align: center;"></td>
@@ -4281,7 +4277,8 @@ window.editSalesReturnItem = async function (invoiceNo) {
       <td style="border-right: 1px solid #000; padding: 4px;"><input type="number" step="any" class="col-amount" value="${amount}" readonly tabindex="-1" style="width: 100%; border: none; background: transparent; outline: none; font-size: 11px; text-align: right; font-weight: bold;"></td>
       <td style="border-right: 1px solid #000; padding: 4px;"><input type="text" class="col-company" value="${company}" oninput="calculateAddedSrRowAmount(this)" style="width: 100%; border: none; background: transparent; outline: none; font-size: 11px; text-align: left; text-transform: uppercase;"></td>
       <td style="border-right: 1px solid #000; padding: 4px;"><input type="text" class="col-orig-invoice-no" value="${origInvoiceNo}" readonly tabindex="-1" style="width: 100%; border: none; background: transparent; outline: none; font-size: 11px; text-align: left;"></td>
-      <td style="padding: 4px;"><input type="text" class="col-orig-buyer-id" value="${origBuyerId}" readonly tabindex="-1" style="width: 100%; border: none; background: transparent; outline: none; font-size: 11px; text-align: left;"></td>
+      <td style="border-right: 1px solid #000; padding: 4px;"><input type="text" class="col-orig-buyer-id" value="${origBuyerId}" readonly tabindex="-1" style="width: 100%; border: none; background: transparent; outline: none; font-size: 11px; text-align: left;"></td>
+      <td style="padding: 4px; text-align: center;"><button type="button" tabindex="-1" onclick="deleteSrRow(this)" style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 2px;"><i class="fas fa-trash-alt"></i></button></td>
     `;
     if (inputRow && tbody) tbody.insertBefore(tr, inputRow);
   });
