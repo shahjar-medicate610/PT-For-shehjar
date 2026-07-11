@@ -372,15 +372,18 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 function showApp() {
   document.getElementById("mainApp").style.display = "block";
-  fetchInventory();
-  fetchDistributors();
-  fetchIndexMappings();
-  fetchSoldOutData();
-  fetchSalesReturnData();
-  fetchPayments();
-  loadBuyers();
   const sidebar = document.getElementById("inventorySidebarOffcanvas");
   if (sidebar) sidebar.style.left = "0";
+  // Run all fetches in PARALLEL using Promise.all for maximum speed
+  Promise.all([
+    fetchInventory(),
+    fetchDistributors(),
+    fetchIndexMappings(),
+    fetchSoldOutData(),
+    fetchSalesReturnData(),
+    fetchPayments(),
+    loadBuyers()
+  ]).catch(err => console.error("showApp parallel fetch error:", err));
 }
 window.formatExpiryInput = function (event) {
   const input = event.target || event;
@@ -479,26 +482,51 @@ window.deleteInventoryRow = function(btn) {
   }
 }
 // Fetch Inventory Data
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+function isCacheValid(key) {
+  const ts = localStorage.getItem(key + '_ts');
+  if (!ts) return false;
+  return (Date.now() - parseInt(ts)) < CACHE_TTL_MS;
+}
+function setCache(key, data) {
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+    localStorage.setItem(key + '_ts', String(Date.now()));
+  } catch(e) { console.warn('Cache write failed:', key, e); }
+}
+function getCache(key) {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : null;
+  } catch(e) { return null; }
+}
+// Call this after any write/save operation to force a fresh fetch next time
+function clearCacheFor(...keys) {
+  keys.forEach(key => {
+    localStorage.removeItem(key + '_ts');
+  });
+}
 async function fetchInventory() {
   const connStatus = document.getElementById('connectionStatus');
   const splashLoader = document.getElementById('splashLoader');
   if (connStatus) connStatus.innerHTML = '<span class="dot" style="color: rgba(255,255,255,0.5);">?</span> Syncing...';
-  const cached = localStorage.getItem("cachedInventory");
-  if (cached) {
+  // Instantly show cached data if available
+  const cachedData = getCache('cachedInventory');
+  if (cachedData) {
     try {
-      inventoryData = JSON.parse(cached);
+      inventoryData = cachedData;
       renderInventoryTable();
       renderDashboardData();
-      if (splashLoader) {
-        splashLoader.style.opacity = '0';
-        setTimeout(() => splashLoader.style.display = 'none', 200);
-      }
+      if (splashLoader) { splashLoader.style.opacity = '0'; setTimeout(() => splashLoader.style.display = 'none', 200); }
     } catch (e) { }
   } else {
-    if (splashLoader) {
-      splashLoader.style.display = 'flex';
-      splashLoader.style.opacity = '1';
-    }
+    if (splashLoader) { splashLoader.style.display = 'flex'; splashLoader.style.opacity = '1'; }
+  }
+  // If cache is fresh (< 5 min), skip the network fetch
+  if (isCacheValid('cachedInventory')) {
+    if (connStatus) connStatus.innerHTML = '<span class="dot" style="background:#10b981; box-shadow: 0 0 8px #10b981;"></span> Connected (cached)';
+    if (splashLoader) { splashLoader.style.opacity = '0'; setTimeout(() => { splashLoader.style.display = 'none'; }, 300); }
+    return;
   }
   try {
     const response = await fetch(`${WEB_APP_URL}?action=get_inventory&_t=${new Date().getTime()}&optimized=true`);
@@ -506,51 +534,42 @@ async function fetchInventory() {
     if (data.optimized) {
       inventoryData = data.rows.map((row, i) => {
         let obj = {};
-        for (let j = 0; j < data.headers.length; j++) {
-          obj[data.headers[j].trim()] = row[j];
-        }
+        for (let j = 0; j < data.headers.length; j++) { obj[data.headers[j].trim()] = row[j]; }
         obj.row_index = i + 2;
         return obj;
       });
     } else {
       inventoryData = data;
     }
-    localStorage.setItem("cachedInventory", JSON.stringify(inventoryData));
+    setCache('cachedInventory', inventoryData);
     renderInventoryTable();
     renderDashboardData();
     if (connStatus) connStatus.innerHTML = '<span class="dot" style="background:#10b981; box-shadow: 0 0 8px #10b981;"></span> Connected';
-    if (splashLoader) {
-      splashLoader.style.opacity = '0';
-      setTimeout(() => { splashLoader.style.display = 'none'; }, 500);
-    }
-    setTimeout(function () {
-      if (typeof window.showExpiryAlertModal === 'function') window.showExpiryAlertModal();
-    }, 800);
+    if (splashLoader) { splashLoader.style.opacity = '0'; setTimeout(() => { splashLoader.style.display = 'none'; }, 500); }
+    setTimeout(function () { if (typeof window.showExpiryAlertModal === 'function') window.showExpiryAlertModal(); }, 800);
   } catch (err) {
     console.error("Error fetching inventory", err);
-    if (splashLoader) {
-      splashLoader.style.opacity = '0';
-      setTimeout(() => { splashLoader.style.display = 'none'; }, 500);
-    }
+    if (splashLoader) { splashLoader.style.opacity = '0'; setTimeout(() => { splashLoader.style.display = 'none'; }, 500); }
   }
 }
 // Fetch Sales Return Data
 async function fetchSalesReturnData() {
-  const cached = localStorage.getItem('cachedSalesReturn');
-  if (cached) {
+  const cachedData = getCache('cachedSalesReturn');
+  if (cachedData) {
     try {
-      salesReturnData = JSON.parse(cached);
+      salesReturnData = cachedData;
       if (typeof window.renderTotalMedicinesTable === 'function') window.renderTotalMedicinesTable();
       if (typeof window.renderInventoryTable === 'function') window.renderInventoryTable();
       if (typeof renderDashboardData === 'function') renderDashboardData();
       if (typeof window.renderReturnedItemsTable === 'function') window.renderReturnedItemsTable();
     } catch (e) { }
   }
+  if (isCacheValid('cachedSalesReturn')) return; // Skip fetch if cache is fresh
   try {
     const response = await fetch(`${WEB_APP_URL}?action=get_sales_returns&_t=${new Date().getTime()}`);
     const data = await response.json();
     salesReturnData = Array.isArray(data) ? data : (data.data || []);
-    localStorage.setItem('cachedSalesReturn', JSON.stringify(salesReturnData));
+    setCache('cachedSalesReturn', salesReturnData);
     if (typeof window.renderTotalMedicinesTable === 'function') window.renderTotalMedicinesTable();
     if (typeof window.renderInventoryTable === 'function') window.renderInventoryTable();
     if (typeof renderDashboardData === 'function') renderDashboardData();
@@ -561,20 +580,21 @@ async function fetchSalesReturnData() {
 }
 // Fetch Sold Out Data
 async function fetchSoldOutData() {
-  const cached = localStorage.getItem('cachedSoldOut');
-  if (cached) {
+  const cachedData = getCache('cachedSoldOut');
+  if (cachedData) {
     try {
-      soldOutData = JSON.parse(cached);
+      soldOutData = cachedData;
       if (typeof window.renderTotalMedicinesTable === 'function') window.renderTotalMedicinesTable();
       if (typeof window.renderInventoryTable === 'function') window.renderInventoryTable();
       if (typeof renderDashboardData === 'function') renderDashboardData();
     } catch (e) { }
   }
+  if (isCacheValid('cachedSoldOut')) return; // Skip fetch if cache is fresh
   try {
     const response = await fetch(`${WEB_APP_URL}?action=get_sold_out&_t=${new Date().getTime()}`);
     const data = await response.json();
     soldOutData = Array.isArray(data) ? data : (data.data || []);
-    localStorage.setItem('cachedSoldOut', JSON.stringify(soldOutData));
+    setCache('cachedSoldOut', soldOutData);
     if (typeof window.renderTotalMedicinesTable === 'function') window.renderTotalMedicinesTable();
     if (typeof window.renderInventoryTable === 'function') window.renderInventoryTable();
     if (typeof renderDashboardData === 'function') renderDashboardData();
@@ -650,10 +670,14 @@ async function fetchDistributors() {
 }
 // Fetch Payments Data
 async function fetchPayments() {
+  const cachedData = getCache('cachedPayments');
+  if (cachedData) { try { paymentData = cachedData; } catch (e) { } }
+  if (isCacheValid('cachedPayments')) return; // Skip fetch if cache is fresh
   try {
     const response = await fetch(`${WEB_APP_URL}?action=get_payments&_t=${new Date().getTime()}`);
     const data = await response.json();
     paymentData = data || [];
+    setCache('cachedPayments', paymentData);
   } catch (error) {
     console.error("Error fetching payments:", error);
   }
@@ -1153,6 +1177,7 @@ window.deleteInventoryStockItem = async function (invoiceNo, btnElement) {
       renderInventoryTable();
       renderDashboardData();
     } else {
+      clearCacheFor('cachedInventory');
       fetchInventory();
     }
   }).catch(err => {
@@ -1198,6 +1223,7 @@ async function addInventoryItem() {
     const result = await response.json();
     if (result.success) {
       clearInventoryForm();
+      clearCacheFor('cachedInventory');
       fetchInventory();
       alert("✅ Item added to inventory successfully!");
     } else {
@@ -1824,6 +1850,7 @@ window.saveBillItem = async function () {
         if (!bulkData.success) {
           throw new Error(bulkData.message || "Save failed.");
         }
+        clearCacheFor('cachedInventory');
         fetchInventory();
       } catch (err) {
         alert("❌ Error syncing bill to cloud: " + err.message);
@@ -3064,6 +3091,7 @@ window.saveSoldOutRecord = async function (invoiceNo, batch, medicineName, expir
       });
       // Fetch fresh data from server to get accurate row indices for deletion!
       if (typeof window.fetchSoldOutData === 'function') {
+        clearCacheFor('cachedSoldOut');
         window.fetchSoldOutData(); // don't await, let it run in background
       }
       if (typeof window.renderTotalMedicinesTable === 'function') {
@@ -3183,6 +3211,8 @@ window.renderTotalMedicinesTable = function () {
         <th style="padding: 10px; font-size: 11px; font-weight: 800; color: #ffffff; text-transform: uppercase;">Medicine Name</th>
         <th style="padding: 10px; font-size: 11px; font-weight: 800; color: #ffffff; text-transform: uppercase;">Location Index</th>
         <th style="padding: 10px; font-size: 11px; font-weight: 800; color: #ffffff; text-transform: uppercase;">Batch</th>
+        <th style="padding: 10px; font-size: 11px; font-weight: 800; color: #ffffff; text-transform: uppercase;">Inv. No.</th>
+        <th style="padding: 10px; font-size: 11px; font-weight: 800; color: #ffffff; text-transform: uppercase;">Supplier</th>
         <th style="padding: 10px; font-size: 11px; font-weight: 800; color: #ffffff; text-transform: uppercase;">Expiry Date</th>
         <th style="padding: 10px; font-size: 11px; font-weight: 800; color: #ffffff; text-transform: uppercase;">Total Rate (Rs.)</th>
         <th style="padding: 10px; font-size: 11px; font-weight: 800; color: #ffffff; text-transform: uppercase;">MRP (Rs.)</th>
@@ -3206,11 +3236,16 @@ window.renderTotalMedicinesTable = function () {
       const invoiceNo = item.InvoiceNo || "";
       const distributor = item.Distributor || item.Supplier || item.supplier || "";
       const origQty = item.OriginalQty || 0;
+      
+      let invoiceHtml = invoiceNo ? `<span style="color: #3b82f6; text-decoration: underline; cursor: pointer;" onclick="window.editInventoryStockItem('${invoiceNo.replace(/'/g, "\\'")}')">${invoiceNo}</span>` : "-";
+
       tbody.innerHTML += `
         <tr style="border-bottom: 1px solid #f1f5f9; transition: background 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
           <td style="padding: 10px; font-weight: 600; color: #0f172a;">${name}</td>
           <td style="padding: 10px; font-weight: 700; color: #8b5cf6;">${locIndex}</td>
           <td style="padding: 10px; font-family: monospace; font-weight: 800; color: #475569;">${batch}</td>
+          <td style="padding: 10px; font-weight: 600;">${invoiceHtml}</td>
+          <td style="padding: 10px; color: #475569;">${distributor}</td>
           <td style="padding: 10px; color: #475569;">${exp}</td>
           <td style="padding: 10px; color: #475569;">${rate}</td>
           <td style="padding: 10px; color: #475569;">${mrp}</td>
@@ -3620,6 +3655,7 @@ window.saveSrItem = async function () {
     });
     const result = await response.json();
     if (result.success || result.status === "success" || result.result === "success") {
+      clearCacheFor('cachedInventory', 'cachedSalesReturn');
       if (typeof fetchInventory === 'function') fetchInventory();
       alert("✅ Sales Return saved successfully!");
       // Prevent duplicates if user clicks save again without refreshing
@@ -3899,6 +3935,7 @@ window.deleteSalesLogItem = async function (index) {
       Toast.fire({ icon: 'success', title: 'Deleted successfully!' });
       // Background sync to ensure index alignment (no await so it doesn't block UI)
       if (typeof window.fetchSoldOutData === 'function') {
+        clearCacheFor('cachedSoldOut');
         window.fetchSoldOutData();
       }
     } else {
@@ -4525,6 +4562,7 @@ window.deletePaymentRecord = async function (receiptNo, distributorName) {
     if (result.status === "success" || result.success) {
       Toast.fire({ icon: 'success', title: 'Deleted successfully!' });
       // Refresh background data silently
+      clearCacheFor('cachedPayments');
       if (typeof window.fetchPayments === 'function') window.fetchPayments();
     } else {
       throw new Error(result.message || "Failed to delete from server");
