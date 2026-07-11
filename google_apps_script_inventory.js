@@ -145,6 +145,7 @@ function doGet(e) {
         for (let j = 0; j < soHeaders.length; j++) {
           obj[String(soHeaders[j]).trim()] = row[j];
         }
+        obj.rowIndex = i + 1; // Store Google Sheet row number (1-based index, headers are row 1)
         soResult.push(obj);
       }
       return ContentService.createTextOutput(JSON.stringify(soResult)).setMimeType(ContentService.MimeType.JSON);
@@ -215,20 +216,23 @@ function doPost(e) {
       let invSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Inventory");
       if (!invSheet) {
         invSheet = SpreadsheetApp.getActiveSpreadsheet().insertSheet("Inventory");
-        invSheet.appendRow(["Distributor", "InvoiceNo", "Date", "ProductDescription", "Pack", "HSN", "Qty", "Free", "MRP", "Batch", "Exp", "DisPercent", "SGSTPercent", "CGSTPercent", "Rate", "Amount", "Company", "DistributorID", "BuyerName", "BuyerID"]);
+        invSheet.appendRow(["Distributor", "InvoiceNo", "Date", "ProductDescription", "Pack", "HSN", "Qty", "Free", "MRP", "Batch", "Exp", "DisPercent", "SGSTPercent", "CGSTPercent", "Rate", "Amount", "Company", "DistributorID", "BuyerName", "BuyerID", "LotRate"]);
       } else {
         const headers = invSheet.getRange(1, 1, 1, invSheet.getLastColumn()).getValues()[0];
         if (!headers.includes("BuyerName")) invSheet.getRange(1, headers.length + 1).setValue("BuyerName");
         const headers2 = invSheet.getRange(1, 1, 1, invSheet.getLastColumn()).getValues()[0];
         if (!headers2.includes("BuyerID")) invSheet.getRange(1, headers2.length + 1).setValue("BuyerID");
+        const headers3 = invSheet.getRange(1, 1, 1, invSheet.getLastColumn()).getValues()[0];
+        if (!headers3.includes("LotRate")) invSheet.getRange(1, headers3.length + 1).setValue("LotRate");
       }
       
       const buyerNameVal = params.BuyerName || params.buyerName || "";
       const buyerIdVal = params.BuyerID || params.buyerId || "";
+      const lotRateVal = params.lotRate || params.LotRate || "";
       
       invSheet.appendRow([
         params.supplier || "", params.invoiceNo || "", params.date || "", params.productName || "", params.pack || "", params.hsn || "", 
-        params.qty || "", params.free || "", params.mrp || "", params.batch || "", params.exp || "", params.dis || "", params.sgst || "", params.cgst || "", params.rate || "", params.amount || "", params.company || "", params.supplierId || "", buyerNameVal, buyerIdVal
+        params.qty || "", params.free || "", params.mrp || "", params.batch || "", params.exp || "", params.dis || "", params.sgst || "", params.cgst || "", params.rate || "", params.amount || "", params.company || "", params.supplierId || "", buyerNameVal, buyerIdVal, lotRateVal
       ]);
       return ContentService.createTextOutput(JSON.stringify({ success: true, message: "Inventory saved" })).setMimeType(ContentService.MimeType.JSON);
     }
@@ -237,13 +241,15 @@ function doPost(e) {
       let invSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Inventory");
       if (!invSheet) {
         invSheet = SpreadsheetApp.getActiveSpreadsheet().insertSheet("Inventory");
-        const headers = ["Supplier", "InvoiceNo", "Date", "ProductName", "Pack", "HSN", "Qty", "Free", "MRP", "Batch", "Exp", "Dis", "SGST", "CGST", "Rate", "Amount", "Company", "SupplierID", "BuyerName", "BuyerID"];
+        const headers = ["Supplier", "InvoiceNo", "Date", "ProductName", "Pack", "HSN", "Qty", "Free", "MRP", "Batch", "Exp", "Dis", "SGST", "CGST", "Rate", "Amount", "Company", "SupplierID", "BuyerName", "BuyerID", "LotRate"];
         invSheet.appendRow(headers);
       } else {
         const headers = invSheet.getRange(1, 1, 1, invSheet.getLastColumn()).getValues()[0];
         if (!headers.includes("BuyerName")) invSheet.getRange(1, headers.length + 1).setValue("BuyerName");
         const headers2 = invSheet.getRange(1, 1, 1, invSheet.getLastColumn()).getValues()[0];
         if (!headers2.includes("BuyerID")) invSheet.getRange(1, headers2.length + 1).setValue("BuyerID");
+        const headers3 = invSheet.getRange(1, 1, 1, invSheet.getLastColumn()).getValues()[0];
+        if (!headers3.includes("LotRate")) invSheet.getRange(1, headers3.length + 1).setValue("LotRate");
       }
       
       const items = params.items || [];
@@ -252,9 +258,10 @@ function doPost(e) {
       items.forEach(item => {
         const buyerNameVal = item.BuyerName || item.buyerName || "";
         const buyerIdVal = item.BuyerID || item.buyerId || "";
+        const lotRateVal = item.lotRate || item.LotRate || "";
         rowsToAppend.push([
           item.supplier || "", item.invoiceNo || "", item.date || "", item.productName || "", item.pack || "", item.hsn || "", 
-          item.qty || "", item.free || "", item.mrp || "", item.batch || "", item.exp || "", item.dis || "", item.sgst || "", item.cgst || "", item.rate || "", item.amount || "", item.company || "", item.supplierId || "", buyerNameVal, buyerIdVal
+          item.qty || "", item.free || "", item.mrp || "", item.batch || "", item.exp || "", item.dis || "", item.sgst || "", item.cgst || "", item.rate || "", item.amount || "", item.company || "", item.supplierId || "", buyerNameVal, buyerIdVal, lotRateVal
         ]);
       });
       
@@ -375,9 +382,10 @@ function doPost(e) {
       items.forEach(item => {
         const buyerNameVal = item.BuyerName || item.buyerName || "";
         const buyerIdVal = item.BuyerID || item.buyerId || "";
+        const lotRateVal = item.lotRate || item.LotRate || "";
         rowsToAppend.push([
           item.supplier || "", item.invoiceNo || "", item.date || "", item.productName || "", item.pack || "", item.hsn || "", 
-          item.qty || "", item.free || "", item.mrp || "", item.batch || "", item.exp || "", item.dis || "", item.sgst || "", item.cgst || "", item.rate || "", item.amount || "", item.company || "", item.supplierId || "", buyerNameVal, buyerIdVal
+          item.qty || "", item.free || "", item.mrp || "", item.batch || "", item.exp || "", item.dis || "", item.sgst || "", item.cgst || "", item.rate || "", item.amount || "", item.company || "", item.supplierId || "", buyerNameVal, buyerIdVal, lotRateVal
         ]);
       });
       
@@ -426,9 +434,36 @@ function doPost(e) {
           break;
         }
       }
-      
-      return ContentService.createTextOutput(JSON.stringify({ success: true, message: deletedCount > 0 ? "Item deleted successfully" : "Item not found" })).setMimeType(ContentService.MimeType.JSON);
+      return ContentService.createTextOutput(JSON.stringify({ success: true, deletedCount: deletedCount })).setMimeType(ContentService.MimeType.JSON);
     }
+
+    if (action === "delete_sold_out") {
+      let soSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("SoldOut");
+      if (!soSheet) return ContentService.createTextOutput(JSON.stringify({ success: false, message: "SoldOut sheet not found" })).setMimeType(ContentService.MimeType.JSON);
+      
+      const rowIndex = parseInt(params.rowIndex);
+      
+      if (isNaN(rowIndex) || rowIndex <= 1) {
+        return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "Invalid row index provided for deletion" })).setMimeType(ContentService.MimeType.JSON);
+      }
+      
+      const maxRows = soSheet.getMaxRows();
+      if (rowIndex > maxRows) {
+        return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "Row index out of bounds" })).setMimeType(ContentService.MimeType.JSON);
+      }
+      
+      // Optionally, verify it's the correct row (extra safety)
+      const rowInvoice = String(soSheet.getRange(rowIndex, 2).getValue()).trim().toLowerCase().replace(/\s+/g, '');
+      const paramInvoice = String(params.InvoiceNo || "").trim().toLowerCase().replace(/\s+/g, '');
+      
+      if (paramInvoice && rowInvoice !== paramInvoice) {
+        return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "Safety check failed: Row data does not match the item you clicked." })).setMimeType(ContentService.MimeType.JSON);
+      }
+
+      soSheet.deleteRow(rowIndex);
+      return ContentService.createTextOutput(JSON.stringify({ status: "success", message: "Item deleted successfully" })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
     
     if (action === "add_buyer") {
       let buyerSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Buyers");
@@ -560,6 +595,32 @@ function doPost(e) {
       ]);
       
       return ContentService.createTextOutput(JSON.stringify({ success: true, message: "Payment saved successfully" })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    if (action === "delete_payment") {
+      let paySheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Payments");
+      if (!paySheet) return ContentService.createTextOutput(JSON.stringify({ success: false, message: "Payments sheet not found" })).setMimeType(ContentService.MimeType.JSON);
+      
+      const receiptNo = String(params.ReceiptNo || "").trim();
+      const distributorName = String(params.DistributorName || "").trim();
+      
+      const data = paySheet.getDataRange().getValues();
+      let rowIndex = -1;
+      for (let i = data.length - 1; i >= 1; i--) {
+        const rowReceiptNo = String(data[i][0]).trim();
+        const rowDistName = String(data[i][3]).trim();
+        if (rowReceiptNo === receiptNo && rowDistName === distributorName) {
+          rowIndex = i + 1;
+          break;
+        }
+      }
+      
+      if (rowIndex !== -1) {
+        paySheet.deleteRow(rowIndex);
+        return ContentService.createTextOutput(JSON.stringify({ success: true, message: "Payment deleted" })).setMimeType(ContentService.MimeType.JSON);
+      } else {
+        return ContentService.createTextOutput(JSON.stringify({ success: false, message: "Payment not found" })).setMimeType(ContentService.MimeType.JSON);
+      }
     }
     
     return ContentService.createTextOutput(JSON.stringify({ success: false, message: "Action not recognized" })).setMimeType(ContentService.MimeType.JSON);
