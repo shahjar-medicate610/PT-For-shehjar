@@ -1,8 +1,8 @@
-window.stripLotInfo = function(name) {
+window.stripLotInfo = function (name) {
   if (!name) return '';
   return String(name).replace(/<[^>]*>/g, '').trim();
 };
-window.escapeHtml = function(name) {
+window.escapeHtml = function (name) {
   if (!name) return '';
   return String(name).replace(/</g, '&lt;').replace(/>/g, '&gt;');
 };
@@ -114,6 +114,54 @@ window.customConfirmAsync = function (message) {
     }, 10);
   });
 };
+
+// Custom Alert Popup (Async)
+window.customAlertAsync = function (title, message, isSuccess = true) {
+  return new Promise((resolve) => {
+    const modal = document.getElementById('customAlertModal');
+    const box = document.getElementById('customAlertBox');
+    const icon = document.getElementById('customAlertIcon');
+    const titleEl = document.getElementById('customAlertTitle');
+    const msgEl = document.getElementById('customAlertMessage');
+    const btnOk = document.getElementById('btnCustomAlertOk');
+    
+    titleEl.innerText = title;
+    msgEl.innerHTML = message;
+    
+    if (isSuccess) {
+      icon.innerHTML = '<i class="fas fa-check-circle"></i>';
+      icon.style.color = '#10b981';
+      btnOk.style.background = '#10b981';
+      btnOk.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.3)';
+    } else {
+      icon.innerHTML = '<i class="fas fa-exclamation-circle"></i>';
+      icon.style.color = '#ef4444';
+      btnOk.style.background = '#ef4444';
+      btnOk.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.3)';
+    }
+
+    const cleanup = () => {
+      btnOk.onclick = null;
+      modal.style.opacity = '0';
+      box.style.transform = 'scale(0.9)';
+      setTimeout(() => {
+        modal.style.display = 'none';
+      }, 200);
+    };
+
+    btnOk.onclick = () => {
+      cleanup();
+      resolve(true);
+    };
+
+    modal.style.display = 'flex';
+    setTimeout(() => {
+      modal.style.opacity = '1';
+      box.style.transform = 'scale(1)';
+    }, 10);
+  });
+};
+
 // Custom Prompt Popup (Async)
 window.customPromptAsync = function (message) {
   return new Promise((resolve) => {
@@ -415,7 +463,7 @@ function calculateInvAmount() {
   const qtyInput = document.getElementById("invQty").value.trim();
   let qty = 0;
   let free = 0;
-  
+
   if (qtyInput.includes('+')) {
     const parts = qtyInput.split('+');
     qty = parseFloat(parts[0]) || 0;
@@ -454,7 +502,7 @@ function clearInventoryForm() {
     "invBatch", "invExp", "invDis", "invSGST", "invSGSTAmt", "invCGST",
     "invCGSTAmt", "invRate", "invAmount", "invCompany"
   ];
-  
+
   fields.forEach(f => {
     const el = document.getElementById(f);
     if (el) {
@@ -467,12 +515,12 @@ function clearInventoryForm() {
   });
   const disEl = document.getElementById("invDis");
   if (disEl) disEl.setAttribute("data-dis-amt", "0");
-  
+
   if (typeof calculateInventoryTotals === 'function') {
     calculateInventoryTotals();
   }
 }
-window.deleteInventoryRow = function(btn) {
+window.deleteInventoryRow = function (btn) {
   const tr = btn.closest('tr');
   if (tr) {
     tr.remove();
@@ -492,13 +540,13 @@ function setCache(key, data) {
   try {
     localStorage.setItem(key, JSON.stringify(data));
     localStorage.setItem(key + '_ts', String(Date.now()));
-  } catch(e) { console.warn('Cache write failed:', key, e); }
+  } catch (e) { console.warn('Cache write failed:', key, e); }
 }
 function getCache(key) {
   try {
     const raw = localStorage.getItem(key);
     return raw ? JSON.parse(raw) : null;
-  } catch(e) { return null; }
+  } catch (e) { return null; }
 }
 // Call this after any write/save operation to force a fresh fetch next time
 function clearCacheFor(...keys) {
@@ -710,7 +758,7 @@ window.handleDistributorNameSelect = function (prefix = 'inv') {
 window.handleDistributorSelectByName = async function (prefix = 'inv') {
   const selectedName = document.getElementById(`${prefix}Supplier`).value;
   const elSupplierId = document.getElementById(`${prefix}SupplierId`);
-  
+
   if (prefix === 'sr' && selectedName) {
     const oldVal = elSupplierId.dataset.lastName || "";
     if (oldVal && oldVal.toLowerCase() !== selectedName.trim().toLowerCase()) {
@@ -734,7 +782,7 @@ window.handleDistributorSelectByName = async function (prefix = 'inv') {
           cancelButtonColor: '#3085d6',
           confirmButtonText: 'Yes, Change it'
         });
-        
+
         if (!proceed.isConfirmed) {
           document.getElementById(`${prefix}Supplier`).value = oldVal;
           return;
@@ -742,7 +790,7 @@ window.handleDistributorSelectByName = async function (prefix = 'inv') {
       }
     }
   }
-  
+
   if (!selectedName) {
     if (elSupplierId) {
       elSupplierId.dataset.lastName = "";
@@ -925,14 +973,14 @@ function renderInventoryTable() {
     let tA = 0, tB = 0;
     if (dateAStr) tA = new Date(dateAStr).getTime();
     if (dateBStr) tB = new Date(dateBStr).getTime();
-    
+
     if (tA > tB) return -1;
     if (tA < tB) return 1;
-    
+
     // 2. Secondary sort by Timestamp (if available)
     const stampA = (a.Timestamp || a.timestamp) ? new Date(a.Timestamp || a.timestamp).getTime() : 0;
     const stampB = (b.Timestamp || b.timestamp) ? new Date(b.Timestamp || b.timestamp).getTime() : 0;
-    
+
     if (stampA > stampB) return -1;
     if (stampA < stampB) return 1;
 
@@ -955,17 +1003,17 @@ function renderInventoryTable() {
   Object.keys(groups).forEach(invNo => {
     const groupItems = groups[invNo];
     const safeInvId = String(invNo).replace(/[^a-zA-Z0-9]/g, '-');
-    
+
     // Header Row Logic
     const isSR = String(invNo).toUpperCase().startsWith('SR-');
     const editBtnHtml = isSR ? '' : `
       <button type="button" class="btn" style="background: #e0f2fe; color: #0284c7; padding: 4px 8px; border-radius: 4px; border: none; cursor: pointer; font-size: 11px; margin-bottom: 4px; display: block; width: 100%; text-align: center;" title="Edit Bill" onclick="event.stopPropagation(); editInventoryStockItem('${invNo}')">
         <i class="fas fa-edit"></i> Edit Bill
       </button>`;
-      
+
     let isDeleteDisabled = false;
     let alertsListHtml = '';
-    
+
     groupItems.forEach(gItem => {
       const gName = String(gItem.ProductDescription || gItem.ProductName || gItem.productName || '');
       const gBatch = gItem.Batch || '';
@@ -974,7 +1022,7 @@ function renderInventoryTable() {
       if (gSoldQty > 0 || gReturnedQty > 0) isDeleteDisabled = true;
     });
 
-    const deleteBtnHtml = isDeleteDisabled 
+    const deleteBtnHtml = isDeleteDisabled
       ? `<button type="button" class="btn" style="background: #f1f5f9; color: #94a3b8; padding: 4px 8px; border-radius: 4px; border: none; cursor: not-allowed; font-size: 11px; display: block; width: 100%; text-align: center;" title="Cannot delete: Items already sold or returned" disabled><i class="fas fa-trash"></i> Delete</button>`
       : `<button type="button" class="btn" style="background: #fee2e2; color: #e11d48; padding: 4px 8px; border-radius: 4px; border: none; cursor: pointer; font-size: 11px; display: block; width: 100%; text-align: center;" title="Delete Bill" onclick="event.stopPropagation(); deleteInventoryStockItem('${invNo}', this)"><i class="fas fa-trash"></i> Delete</button>`;
 
@@ -1008,7 +1056,7 @@ function renderInventoryTable() {
           let month = parseInt(parts[0]);
           let year = parseInt(parts[1]);
           if (year < 100) year += 2000;
-          const expDate = new Date(year, month, 0); 
+          const expDate = new Date(year, month, 0);
           expDate.setHours(0, 0, 0, 0);
           const now = new Date();
           now.setHours(0, 0, 0, 0);
@@ -1058,7 +1106,7 @@ function renderInventoryTable() {
 window.editInventoryStockItem = async function (invoiceNo) {
   const items = inventoryData.filter(i => (i.InvoiceNo || i.invoiceNo || "N/A") === invoiceNo);
   if (!items || items.length === 0) return;
-  
+
   // Close Payment Modal & Sidebar if open
   if (typeof window.closePaymentsModal === 'function') window.closePaymentsModal();
   if (document.getElementById('inventorySidebarOffcanvas')) document.getElementById('inventorySidebarOffcanvas').style.left = '-300px';
@@ -1072,12 +1120,12 @@ window.editInventoryStockItem = async function (invoiceNo) {
   if (document.getElementById('inventoryStockManagementTableContainer')) document.getElementById('inventoryStockManagementTableContainer').style.display = 'none';
   if (document.getElementById('inventorySidebarCloseBtn')) document.getElementById('inventorySidebarCloseBtn').style.display = 'block';
   if (document.getElementById('inventoryGlobalFooter')) document.getElementById('inventoryGlobalFooter').style.display = 'block';
-  
+
   window.scrollTo({ top: 0, behavior: 'smooth' });
 
   const proceed = await customConfirmAsync("If you edit this bill, the existing record will be updated when saved. Do you want to proceed?");
   if (!proceed) return;
-  
+
   // Clear current table
   await clearEntireBill(true);
   // Set this BEFORE calculating distributor balances so the current invoice is excluded from last balance!
@@ -1140,6 +1188,7 @@ window.editInventoryStockItem = async function (invoiceNo) {
     calculateInventoryTotals();
   }
   window.currentUpdatingInvoiceNo = invoiceNo;
+  if (inputRow) inputRow.style.display = "none";
   const saveBtn = document.getElementById("btnSaveInventory");
   if (saveBtn) {
     saveBtn.innerHTML = '<i class="fas fa-save"></i> Update Bill <div class="loader" id="invBtnLoader" style="display: none; border-color: white; border-top-color: transparent; width: 14px; height: 14px; margin-left: 5px;"></div>';
@@ -1237,21 +1286,21 @@ async function addInventoryItem() {
   }
 }
 // Add bulk empty rows for flexible data entry
-window.addBulkEmptyRows = function(type) {
+window.addBulkEmptyRows = function (type) {
   const countInput = document.getElementById(type === 'inv' ? 'bulkRowCount_inv' : 'bulkRowCount_sr');
   let count = parseInt(countInput ? countInput.value : "1") || 1;
   if (count < 1) count = 1;
   if (count > 100) count = 100;
-  
+
   if (type === 'inv') {
     const supplierName = document.getElementById("invSupplier").value.trim();
     const buyerName = document.getElementById("invBuyerName").value.trim();
     if (!supplierName) { alert("Please select a Distributor first!"); return; }
     if (!buyerName) { alert("Please select a Buyer first!"); return; }
-    
+
     const defaultSgst = document.getElementById('invSGST') ? document.getElementById('invSGST').value : "2.5";
     const defaultCgst = document.getElementById('invCGST') ? document.getElementById('invCGST').value : "2.5";
-    
+
     for (let i = 0; i < count; i++) {
       const tr = document.createElement("tr");
       tr.className = "added-row";
@@ -1280,14 +1329,14 @@ window.addBulkEmptyRows = function(type) {
       document.getElementById("billTableBody").insertBefore(tr, document.getElementById("inputRow"));
     }
     calculateInventoryTotals();
-    
+
   } else if (type === 'sr') {
     const supplierName = document.getElementById("srSupplier").value.trim();
     if (!supplierName) { alert("Please select a Distributor first!"); return; }
-    
+
     const defaultSgst = document.getElementById('srSGST') ? document.getElementById('srSGST').value : "2.5";
     const defaultCgst = document.getElementById('srCGST') ? document.getElementById('srCGST').value : "2.5";
-    
+
     for (let i = 0; i < count; i++) {
       const tr = document.createElement("tr");
       tr.className = "added-row";
@@ -1321,7 +1370,18 @@ window.addBulkEmptyRows = function(type) {
 };
 
 // Dynamic Invoice Row Addition
-function addInventoryRow() {
+window.addInventoryRow = async function () {
+  if (window.currentUpdatingInvoiceNo) {
+    const isConfirmed = await window.customConfirmAsync("You are adding a new row to an existing bill. This might affect related sales, returns, or cause stock mismatches.\n\nThe system is not responsible for any data mismatches or incorrect calculations that occur as a result of this change. You are making this change at your own risk.\n\nAre you sure you want to proceed?");
+    if (!isConfirmed) return;
+    
+    const countInput = document.getElementById('bulkRowCount_inv');
+    const oldCount = countInput ? countInput.value : "1";
+    if (countInput) countInput.value = 1;
+    if (typeof window.addBulkEmptyRows === 'function') window.addBulkEmptyRows('inv');
+    if (countInput) countInput.value = oldCount;
+    return;
+  }
   const fields = ['invProductName', 'invPack', 'invHSN', 'invQty', 'invMRP', 'invBatch', 'invExp', 'invDis', 'invSGST', 'invSGSTAmt', 'invCGST', 'invCGSTAmt', 'invRate', 'invAmount', 'invCompany'];
   const vals = {};
   fields.forEach(f => {
@@ -1392,7 +1452,7 @@ window.calculateAddedRowAmount = function (element) {
   const payableQty = qty;
   const amount = payableQty * rate;
   tr.querySelector('.col-amount').value = amount > 0 ? amount.toFixed(2) : "";
-  
+
   let lotRate = rate;
   if (payableQty + free > 0) {
     lotRate = (payableQty * rate) / (payableQty + free);
@@ -1649,7 +1709,7 @@ window.clearEntireBill = async function (force = false) {
   document.getElementById("invBuyerDrugLic").value = "";
   document.getElementById("invBuyerSalesMan").value = "";
   document.getElementById("invBuyerRoute").value = "";
-  
+
   const defaultBuyerId = localStorage.getItem('defaultBuyerId');
   if (defaultBuyerId && window.handleBuyerSelect) {
     window.handleBuyerSelect(defaultBuyerId, 'inv');
@@ -1666,6 +1726,8 @@ window.clearEntireBill = async function (force = false) {
   // Recalculate totals
   calculateInventoryTotals();
   window.currentUpdatingInvoiceNo = null;
+  const inputRow = document.getElementById("inputRow");
+  if (inputRow) inputRow.style.display = "";
   const saveBtn = document.getElementById("btnSaveInventory");
   if (saveBtn) {
     saveBtn.innerHTML = '<i class="fas fa-check-circle"></i> Save Bill Item <div class="loader" id="invBtnLoader" style="display: none; border-color: white; border-top-color: transparent; width: 14px; height: 14px; margin-left: 5px;"></div>';
@@ -1738,7 +1800,7 @@ window.saveBillItem = async function () {
     } else {
       rQty = parseFloat(qtyStr) || 0;
     }
-    
+
     items.push({
       supplier: supplierName,
       supplierId: supplierId,
@@ -1788,7 +1850,7 @@ window.saveBillItem = async function () {
       Swal.showLoading();
     }
   });
-  
+
   // Wait 1 second to show the loader
   await new Promise(r => setTimeout(r, 1000));
 
@@ -1841,7 +1903,7 @@ window.saveBillItem = async function () {
             items: items
           };
         }
-        
+
         const bulkRes = await fetch(WEB_APP_URL, {
           method: "POST",
           body: JSON.stringify(payload)
@@ -2319,7 +2381,7 @@ function renderBuyersList() {
     `;
   });
 }
-window.setDefaultBuyer = function(buyerId) {
+window.setDefaultBuyer = function (buyerId) {
   localStorage.setItem('defaultBuyerId', buyerId);
 };
 window.handleBuyerSelect = function (buyerIdOverride, prefix = 'inv') {
@@ -2707,9 +2769,9 @@ function renderDashboardData() {
     const invoiceNo = item.InvoiceNo || item.invoiceNo || '';
     const origPaidQty = parseFloat(item.Qty || 0);
     const origFreeQty = parseFloat(item.Free || item.free || 0);
-    const origQty = origPaidQty + origFreeQty; 
+    const origQty = origPaidQty + origFreeQty;
     const simpleRate = parseFloat(item.Rate || item.rate || 0);
-    
+
     const rowAmount = parseFloat(item.Amount || item.amount || (origPaidQty * simpleRate));
     const disPercent = parseFloat(item.DisPercent || item.Dis || item.dis || 0);
     const disAmt = (rowAmount * disPercent) / 100;
@@ -2718,22 +2780,22 @@ function renderDashboardData() {
     const cgstPercent = parseFloat(item.CGSTPercent || item.CGST || item.cgst || 0);
     const sgstAmt = (taxableAmt * sgstPercent) / 100;
     const cgstAmt = (taxableAmt * cgstPercent) / 100;
-    
+
     const invoiceAmt = taxableAmt + sgstAmt + cgstAmt;
     const origAmt = invoiceAmt;
-    
+
     // Calculate rate based on PAID quantity so free items don't dilute the cost per unit
     const lotRate = origPaidQty > 0 ? (origAmt / origPaidQty) : 0;
-    
+
     const soldQty = window.getSoldQty ? window.getSoldQty(invoiceNo, batch, medName) : 0;
     const soldAmt = soldQty * lotRate; // COGS uses blended rate
-    
+
     const returnedQty = window.getReturnedQty ? window.getReturnedQty(invoiceNo, batch, medName) : 0;
     const returnedAmt = window.getReturnedAmt ? window.getReturnedAmt(invoiceNo, batch, medName) : (returnedQty * lotRate);
-    
+
     const availQty = origQty - soldQty - returnedQty;
     const availAmt = availQty * lotRate; // Value of remaining physical stock
-    
+
     grandTotalOrigQty += origQty;
     grandTotalOrigAmt += origAmt;
     grandTotalSoldQty += soldQty;
@@ -2879,7 +2941,7 @@ window.getSoldQty = function (invoiceNo, batch, medicineName) {
     const isSameProduct = sName.trim() === mName.trim();
     const isSameBatch = String(s.Batch || "").trim() === String(batch || "").trim();
     const isSameInvoice = String(s.InvoiceNo || "").trim() === String(invoiceNo || "").trim();
-    
+
     if (isSameInvoice && isSameBatch && isSameProduct) {
       totalSold += parseFloat(s.SoldQty || 0);
     }
@@ -2893,11 +2955,11 @@ window.getReturnedQty = function (invoiceNo, batch, productName) {
       const iNameRaw = String(item.ProductName || item.MedicineName || item.ProductDescription || item.productName || "");
       const iName = window.stripLotInfo ? window.stripLotInfo(iNameRaw) : iNameRaw;
       const pName = window.stripLotInfo ? window.stripLotInfo(String(productName || "")) : String(productName || "");
-      
+
       const isSameProduct = iName.trim().toLowerCase() === pName.trim().toLowerCase();
       const isSameBatch = String(item.Batch || "").trim() === String(batch || "").trim();
       const isSameInvoice = String(item.OrigInvoiceNo || item.InvoiceNo || "").trim() === String(invoiceNo || "").trim();
-      
+
       if (isSameBatch && isSameProduct && isSameInvoice) {
         returnedQty += Math.abs(parseFloat(item['Return Qty'] || item.ReturnedQty || item.Qty || 0));
       }
@@ -2912,11 +2974,11 @@ window.getReturnedAmt = function (invoiceNo, batch, productName) {
       const iNameRaw = String(item.ProductName || item.MedicineName || item.ProductDescription || item.productName || "");
       const iName = window.stripLotInfo ? window.stripLotInfo(iNameRaw) : iNameRaw;
       const pName = window.stripLotInfo ? window.stripLotInfo(String(productName || "")) : String(productName || "");
-      
+
       const isSameProduct = iName.trim().toLowerCase() === pName.trim().toLowerCase();
       const isSameBatch = String(item.Batch || "").trim() === String(batch || "").trim();
       const isSameInvoice = String(item.OrigInvoiceNo || item.InvoiceNo || "").trim() === String(invoiceNo || "").trim();
-      
+
       if (isSameBatch && isSameProduct && isSameInvoice) {
         const retQty = parseFloat(item['Return Qty'] || item.ReturnedQty || item.Qty || 0);
         const rate = parseFloat(item.Rate || item.rate || item.MRP || item.mrp || 0);
@@ -2933,10 +2995,10 @@ window.getAvailQty = function (invoiceNo, batch, productName) {
       const iNameRaw = String(item.ProductDescription || item.ProductName || item.productName || "");
       const iName = window.stripLotInfo ? window.stripLotInfo(iNameRaw) : iNameRaw;
       const pName = window.stripLotInfo ? window.stripLotInfo(String(productName || "")) : String(productName || "");
-      
+
       const isSameProduct = iName.trim().toLowerCase() === pName.trim().toLowerCase();
       const isSameBatch = String(item.Batch || "").trim() === String(batch || "").trim();
-      
+
       if (isSameBatch && isSameProduct) {
         const itemInvNo = String(item.InvoiceNo || item.invoiceNo || "").trim();
         if (itemInvNo === String(invoiceNo || "").trim()) {
@@ -3006,7 +3068,7 @@ window.returnItemToSalesReturn = function (itemJsonStr, availQty, btnElement) {
   if (document.getElementById("srOrigBuyerId")) {
     document.getElementById("srOrigBuyerId").value = item.buyerid || item.buyer_id || item.buyername || "";
   }
-  
+
   if (document.getElementById("srBuyerName")) {
     const bName = item.buyername || item.vendorname || item.vendor || "";
     if (bName) document.getElementById("srBuyerName").value = bName;
@@ -3132,7 +3194,7 @@ window.renderTotalMedicinesTable = function () {
   inventoryData.forEach(item => {
     if (window.isMedicineExpired(item)) return;
     const rawName = item.ProductDescription || item.ProductName || item.productName || "";
-      const name = window.stripLotInfo(rawName);
+    const name = window.stripLotInfo(rawName);
     const company = item.Company || item.Mfg || "";
     const searchTarget = (name + " " + company).toLowerCase();
     if (searchStr && !searchTarget.includes(searchStr)) return;
@@ -3236,7 +3298,7 @@ window.renderTotalMedicinesTable = function () {
       const invoiceNo = item.InvoiceNo || "";
       const distributor = item.Distributor || item.Supplier || item.supplier || "";
       const origQty = item.OriginalQty || 0;
-      
+
       let invoiceHtml = invoiceNo ? `<span style="color: #3b82f6; text-decoration: underline; cursor: pointer;" onclick="window.editInventoryStockItem('${invoiceNo.replace(/'/g, "\\'")}')">${invoiceNo}</span>` : "-";
 
       tbody.innerHTML += `
@@ -3381,7 +3443,7 @@ window.calculateAddedSrRowAmount = function (inputElem) {
   } else {
     qty = parseFloat(qtyStr) || 0;
   }
-  
+
   // Validate against max qty
   const maxQtyStr = qtyInput.getAttribute('data-max-qty');
   if (maxQtyStr && !window.currentUpdatingSrInvoiceNo) {
@@ -3485,12 +3547,17 @@ window.clearEntireSrBill = async function (skipConfirm = false) {
     const el = document.getElementById(f);
     if (el) el.value = '';
   });
-  window.currentUpdatingSrInvoiceNo = null;
+  window.currentUpdatingSrInvoiceNo = null; // Re-added this line
   const saveBtn = document.getElementById("btnSaveSr");
   if (saveBtn) {
     saveBtn.innerHTML = '<i class="fas fa-check-circle"></i> Save Return <span id="srBtnLoader" style="display:none; margin-left: 5px;"><i class="fas fa-spinner fa-spin"></i></span>';
     saveBtn.style.background = '#000';
   }
+  // Reset readonly state for headers
+  ['srInvoiceNo', 'srEntryDate', 'srSupplier', 'srBuyerName'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.readOnly = false; el.style.backgroundColor = ''; }
+  });
 };
 window.saveSrItem = async function () {
   const btn = document.getElementById("btnSaveSr");
@@ -3554,7 +3621,7 @@ window.saveSrItem = async function () {
     if (!isValid) return;
     const productName = tr.querySelector(".col-product").value.trim();
     if (!productName) return; // Skip empty rows (considered deleted/ignored)
-    
+
     const batch = tr.querySelector(".col-batch").value.trim();
     const exp = tr.querySelector(".col-exp").value.trim();
     const mrp = tr.querySelector(".col-mrp").value.trim();
@@ -3569,13 +3636,13 @@ window.saveSrItem = async function () {
     const qtyStr = tr.querySelector(".col-qty").value.trim();
     let rQty = 0, rFree = 0;
     if (qtyStr.includes('+')) {
-        const parts = qtyStr.split('+');
-        rQty = parseFloat(parts[0]) || 0;
-        rFree = parseFloat(parts[1]) || 0;
+      const parts = qtyStr.split('+');
+      rQty = parseFloat(parts[0]) || 0;
+      rFree = parseFloat(parts[1]) || 0;
     } else {
-        rQty = parseFloat(qtyStr) || 0;
-        const freeEl = tr.querySelector(".col-free");
-        rFree = freeEl ? parseFloat(freeEl.value) || 0 : 0;
+      rQty = parseFloat(qtyStr) || 0;
+      const freeEl = tr.querySelector(".col-free");
+      rFree = freeEl ? parseFloat(freeEl.value) || 0 : 0;
     }
     payload.items.push({
       ProductName: tr.querySelector(".col-product").value,
@@ -3596,7 +3663,7 @@ window.saveSrItem = async function () {
       OrigBuyerId: tr.querySelector(".col-orig-buyer-id") ? tr.querySelector(".col-orig-buyer-id").value : ""
     });
   });
-  
+
   if (!isValid) return;
 
   if (payload.items.length === 0) {
@@ -3890,7 +3957,7 @@ window.deleteSalesLogItem = async function (index) {
   if (!item) return;
   const isConfirmed = await window.customConfirmAsync(`Are you sure you want to delete this sales record for ${item.MedicineName} (Qty: ${item.SoldQty})? This will restore the sold quantity back to your inventory.`);
   if (!isConfirmed) return;
-  
+
   // Optimistic UI Update: Remove immediately from frontend
   const deletedItem = soldOutData.splice(index, 1)[0];
   localStorage.setItem('cachedSoldOut', JSON.stringify(soldOutData));
@@ -3929,7 +3996,7 @@ window.deleteSalesLogItem = async function (index) {
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify(payload)
     });
-    
+
     const result = await response.json();
     if (result.status === "success" || result.success) {
       Toast.fire({ icon: 'success', title: 'Deleted successfully!' });
@@ -3955,21 +4022,21 @@ window.deleteSalesLogItem = async function (index) {
 // -------------------------------------------------------------------------
 // DISTRIBUTOR PAYMENTS MODULE
 // -------------------------------------------------------------------------
-window.toggleOpeningBalanceMode = function() {
+window.toggleOpeningBalanceMode = function () {
   const isOpening = document.getElementById("paymentIsOpeningBalance").checked;
   const receiptNoInput = document.getElementById("paymentReceiptNoInput");
   const modeSelect = document.getElementById("paymentMode");
-  
+
   if (isOpening) {
     receiptNoInput.value = "Opening Balance";
     receiptNoInput.disabled = true;
     receiptNoInput.style.backgroundColor = "#e2e8f0";
     if (modeSelect) {
       if (![...modeSelect.options].some(o => o.value === "-")) {
-         const opt = document.createElement("option");
-         opt.value = "-";
-         opt.textContent = "-";
-         modeSelect.insertBefore(opt, modeSelect.firstChild);
+        const opt = document.createElement("option");
+        opt.value = "-";
+        opt.textContent = "-";
+        modeSelect.insertBefore(opt, modeSelect.firstChild);
       }
       modeSelect.value = "-";
       modeSelect.disabled = true;
@@ -3988,7 +4055,7 @@ window.toggleOpeningBalanceMode = function() {
   updateRemainingBalance();
 };
 
-window.resetPaymentForm = function(btn) {
+window.resetPaymentForm = function (btn) {
   if (btn) {
     btn.style.opacity = '0.5';
     setTimeout(() => { btn.style.opacity = '1'; }, 200);
@@ -4003,17 +4070,17 @@ window.resetPaymentForm = function(btn) {
   if (dateInput) {
     // Set to local timezone's today's date
     const offset = new Date().getTimezoneOffset();
-    const today = new Date(new Date().getTime() - (offset*60*1000)).toISOString().split('T')[0];
+    const today = new Date(new Date().getTime() - (offset * 60 * 1000)).toISOString().split('T')[0];
     dateInput.value = today;
   }
   const select = document.getElementById("paymentDistributorSelect");
   if (select) select.value = "";
-  
+
   const fromDateInput = document.getElementById("printFromDate");
   const toDateInput = document.getElementById("printToDate");
   if (fromDateInput) fromDateInput.value = "";
   if (toDateInput) toDateInput.value = "";
-  
+
   calculateDistributorBalance();
   if (typeof window.renderPaymentHistory === 'function') {
     window.renderPaymentHistory();
@@ -4026,13 +4093,13 @@ window.openPaymentsModal = function () {
   modal.style.display = "flex";
   // Add animation
   setTimeout(() => { modal.style.opacity = "1"; }, 10);
-  
+
   // Populate distributors
   populatePaymentDistributors();
-  
+
   // Reset form fields
   resetPaymentForm();
-  
+
   // Switch to new payment tab by default
   switchPaymentsTab('new');
 };
@@ -4108,7 +4175,7 @@ window.calculateDistributorBalance = function () {
         const taxableAmt = rowAmount - disAmt;
         const sgstAmt = (taxableAmt * sgstPercent) / 100;
         const cgstAmt = (taxableAmt * cgstPercent) / 100;
-        
+
         totalInvoiced += (taxableAmt + sgstAmt + cgstAmt);
       }
     });
@@ -4170,7 +4237,7 @@ window.recordPayment = async function () {
     alert("Please enter a valid amount to pay.");
     return;
   }
-  
+
   const isOpening = document.getElementById("paymentIsOpeningBalance") && document.getElementById("paymentIsOpeningBalance").checked;
   let finalAmt = parseFloat(amt);
   if (isOpening) {
@@ -4190,7 +4257,7 @@ window.recordPayment = async function () {
   let dateStr = dateInputEl ? dateInputEl.value : "";
   if (!dateStr) {
     const offset = new Date().getTimezoneOffset();
-    dateStr = new Date(new Date().getTime() - (offset*60*1000)).toISOString().split('T')[0];
+    dateStr = new Date(new Date().getTime() - (offset * 60 * 1000)).toISOString().split('T')[0];
   }
   const payload = {
     action: "add_payment",
@@ -4235,7 +4302,7 @@ window.recordPayment = async function () {
       const dateInput = document.getElementById("paymentDate");
       if (dateInput) {
         const offset = new Date().getTimezoneOffset();
-        dateInput.value = new Date(new Date().getTime() - (offset*60*1000)).toISOString().split('T')[0];
+        dateInput.value = new Date(new Date().getTime() - (offset * 60 * 1000)).toISOString().split('T')[0];
       }
       calculateDistributorBalance();
       if (typeof window.renderPaymentHistory === 'function') window.renderPaymentHistory();
@@ -4261,12 +4328,12 @@ window.renderPaymentHistory = function () {
   const tbody = document.getElementById("paymentHistoryTableBody");
   if (!tbody) return;
   tbody.innerHTML = "";
-  
+
   const distributorSelect = document.getElementById("paymentDistributorSelect");
   const selectedDistributor = distributorSelect ? distributorSelect.value : "";
   const placeholder = document.getElementById("paymentLedgerPlaceholder");
   const tableContainer = document.getElementById("paymentLedgerTableContainer");
-  
+
   if (!selectedDistributor) {
     if (placeholder) placeholder.style.display = "flex";
     if (tableContainer) tableContainer.style.display = "none";
@@ -4275,28 +4342,28 @@ window.renderPaymentHistory = function () {
     if (placeholder) placeholder.style.display = "none";
     if (tableContainer) tableContainer.style.display = "block";
   }
-  
+
   let ledgerEntries = [];
-  
+
   const billsByInvoice = {};
   (inventoryData || []).forEach(b => {
     const dist = String(b.Distributor || '').trim();
     if (selectedDistributor && dist.toLowerCase() !== selectedDistributor.toLowerCase()) return;
     if (!dist) return;
-    
+
     const invNo = String(b.InvoiceNo || '').trim();
     const key = dist + "_" + invNo;
     if (!billsByInvoice[key]) {
       billsByInvoice[key] = {
-         Date: b.Date || '',
-         ReceiptNo: invNo,
-         DistributorName: dist,
-         AmountPaid: 0, 
-         PaymentMode: 'Bill',
-         ReferenceNo: '-',
-         Remarks: 'Purchases',
-         Type: 'Bill',
-         Timestamp: (function(d){ if(!d) return 0; const s=String(d).split('T')[0]; if(/^\d{2}\/\d{2}\/\d{4}$/.test(s)){const[dd,mm,yy]=s.split('/');return new Date(`${yy}-${mm}-${dd}`).getTime();} return new Date(s).getTime(); })(b.Timestamp || b.timestamp || b.Date)
+        Date: b.Date || '',
+        ReceiptNo: invNo,
+        DistributorName: dist,
+        AmountPaid: 0,
+        PaymentMode: 'Bill',
+        ReferenceNo: '-',
+        Remarks: 'Purchases',
+        Type: 'Bill',
+        Timestamp: (function (d) { if (!d) return 0; const s = String(d).split('T')[0]; if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) { const [dd, mm, yy] = s.split('/'); return new Date(`${yy}-${mm}-${dd}`).getTime(); } return new Date(s).getTime(); })(b.Timestamp || b.timestamp || b.Date)
       };
     }
     const rowAmount = parseFloat(b.Amount || b.amount || 0);
@@ -4311,6 +4378,12 @@ window.renderPaymentHistory = function () {
 
     billsByInvoice[key].AmountPaid -= totalAmount;
   });
+  
+  // Round off the final bill amount to match the inventory dashboard
+  Object.values(billsByInvoice).forEach(bill => {
+    bill.AmountPaid = -Math.round(Math.abs(bill.AmountPaid));
+  });
+  
   ledgerEntries.push(...Object.values(billsByInvoice));
 
   const returnsByInvoice = {};
@@ -4320,45 +4393,51 @@ window.renderPaymentHistory = function () {
       const dist = String(r['Distributor Name'] || r.DistributorName || r.Supplier || r.Distributor || '').trim();
       if (!dist) return;
       if (selectedDistributor && dist.toLowerCase() !== selectedDistributor.toLowerCase()) return;
-      
+
       // Use "Sales Return No" as the receipt/invoice identifier
       const srNo = String(r['Sales Return No'] || r.SalesReturnNo || r.InvoiceNo || '').trim();
       const key = dist + "_SR_" + srNo;
       if (!returnsByInvoice[key]) {
         returnsByInvoice[key] = {
-           Date: r.Date || '',
-           ReceiptNo: srNo || 'Return',
-           DistributorName: dist,
-           AmountPaid: 0,
-           PaymentMode: 'Return',
-           ReferenceNo: '-',
-           Remarks: 'Sales Return (Credit)',
-           Type: 'Return',
-           Timestamp: (function(d){ if(!d) return 0; const s=String(d).split('T')[0]; if(/^\d{2}\/\d{2}\/\d{4}$/.test(s)){const[dd,mm,yy]=s.split('/');return new Date(`${yy}-${mm}-${dd}`).getTime();} return new Date(s).getTime(); })(r.Timestamp || r.timestamp || r.Date)
+          Date: r.Date || '',
+          ReceiptNo: srNo || 'Return',
+          DistributorName: dist,
+          AmountPaid: 0,
+          PaymentMode: 'Return',
+          ReferenceNo: '-',
+          Remarks: 'Sales Return (Credit)',
+          Type: 'Return',
+          Timestamp: (function (d) { if (!d) return 0; const s = String(d).split('T')[0]; if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) { const [dd, mm, yy] = s.split('/'); return new Date(`${yy}-${mm}-${dd}`).getTime(); } return new Date(s).getTime(); })(r.Timestamp || r.timestamp || r.Date)
         };
       }
       // Amount is positive — it reduces what we owe the distributor
       returnsByInvoice[key].AmountPaid += parseFloat(r.Amount || 0);
     });
   }
+  
+  // Round off the final sales return amount
+  Object.values(returnsByInvoice).forEach(ret => {
+    ret.AmountPaid = Math.round(ret.AmountPaid);
+  });
+  
   ledgerEntries.push(...Object.values(returnsByInvoice));
 
   (paymentData || []).forEach(p => {
-     const dist = String(p.DistributorName || '').trim();
-     if (selectedDistributor && dist.toLowerCase() !== selectedDistributor.toLowerCase()) return;
-     if (!dist) return;
-     
-     ledgerEntries.push({
-       Date: p.Date || '',
-       ReceiptNo: p.ReceiptNo || '',
-       DistributorName: dist,
-       AmountPaid: parseFloat(p.AmountPaid || 0),
-       PaymentMode: p.PaymentMode || 'Cash',
-       ReferenceNo: p.ReferenceNo || '-',
-       Remarks: (p.Remarks && String(p.Remarks).trim() !== '' && String(p.Remarks).trim() !== '-') ? p.Remarks : 'PAID',
-       Type: 'Payment',
-       Timestamp: (function(d){ if(!d) return 0; const s=String(d).split('T')[0]; if(/^\d{2}\/\d{2}\/\d{4}$/.test(s)){const[dd,mm,yy]=s.split('/');return new Date(`${yy}-${mm}-${dd}`).getTime();} return new Date(s).getTime(); })(p.Timestamp || p.timestamp || p.Date)
-     });
+    const dist = String(p.DistributorName || '').trim();
+    if (selectedDistributor && dist.toLowerCase() !== selectedDistributor.toLowerCase()) return;
+    if (!dist) return;
+
+    ledgerEntries.push({
+      Date: p.Date || '',
+      ReceiptNo: p.ReceiptNo || '',
+      DistributorName: dist,
+      AmountPaid: parseFloat(p.AmountPaid || 0),
+      PaymentMode: p.PaymentMode || 'Cash',
+      ReferenceNo: p.ReferenceNo || '-',
+      Remarks: (p.Remarks && String(p.Remarks).trim() !== '' && String(p.Remarks).trim() !== '-') ? p.Remarks : 'PAID',
+      Type: 'Payment',
+      Timestamp: (function (d) { if (!d) return 0; const s = String(d).split('T')[0]; if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) { const [dd, mm, yy] = s.split('/'); return new Date(`${yy}-${mm}-${dd}`).getTime(); } return new Date(s).getTime(); })(p.Timestamp || p.timestamp || p.Date)
+    });
   });
 
   if (ledgerEntries.length === 0) {
@@ -4403,7 +4482,7 @@ window.renderPaymentHistory = function () {
 
   let finalBalance = 0;
   ledgerEntries.forEach(entry => {
-    finalBalance -= entry.AmountPaid; 
+    finalBalance -= entry.AmountPaid;
   });
 
   // Set the footer total balance
@@ -4428,8 +4507,8 @@ window.renderPaymentHistory = function () {
   const toDateStr = toDateInput ? toDateInput.value : "";
   const fromDate = fromDateStr ? new Date(fromDateStr) : null;
   const toDate = toDateStr ? new Date(toDateStr) : null;
-  if (fromDate) fromDate.setHours(0,0,0,0);
-  if (toDate) toDate.setHours(23,59,59,999);
+  if (fromDate) fromDate.setHours(0, 0, 0, 0);
+  if (toDate) toDate.setHours(23, 59, 59, 999);
 
   let visibleCount = 0;
   ledgerEntries.forEach((p, idx) => {
@@ -4440,17 +4519,17 @@ window.renderPaymentHistory = function () {
     visibleCount++;
     const tr = document.createElement("tr");
     tr.style.borderBottom = "1px solid #f1f5f9";
-    
-    const rawAmt = p.AmountPaid; 
+
+    const rawAmt = p.AmountPaid;
     const amtStr = Math.abs(rawAmt).toFixed(2);
     // Bills are negative AmountPaid (you owe), Payments/Returns are positive (reduce debt)
     const isCredit = rawAmt > 0;
     const displayColor = rawAmt < 0 ? "#ef4444" : "#10b981";
     const amtPrefix = isCredit ? "+" : "";
-    
+
     // Parse date correctly (handles DD/MM/YYYY from Sheets)
     const parsedDate = parseFlexibleDate(p.Date);
-    const dateStr = p.Date 
+    const dateStr = p.Date
       ? (parsedDate.getTime() > 0 ? parsedDate.toISOString().split('T')[0] : String(p.Date).split('T')[0])
       : '';
 
@@ -4480,7 +4559,7 @@ window.renderPaymentHistory = function () {
     }
 
     let receiptNoHtml = `<td style="padding: 12px 10px; font-size: 13px; font-weight: 600; color: #0ea5e9;">${p.ReceiptNo || ''}</td>`;
-    
+
     if (p.Type === 'Bill' && p.ReceiptNo) {
       receiptNoHtml = `<td style="padding: 12px 10px; font-size: 13px; font-weight: 600; color: #0ea5e9;">
         <span style="cursor: pointer; text-decoration: underline; color: #3b82f6;" 
@@ -4520,31 +4599,38 @@ window.renderPaymentHistory = function () {
     tbody.innerHTML = `<tr><td colspan="8" style="padding: 15px; text-align: center; color: #64748b;">No records found for the selected date range.</td></tr>`;
   }
 };
+
 window.deletePaymentRecord = async function (receiptNo, distributorName) {
   if (!receiptNo || !distributorName) return;
   const isConfirmed = await window.customConfirmAsync(`Are you sure you want to delete this payment record (Receipt: ${receiptNo}) for ${distributorName}?`);
   if (!isConfirmed) return;
-  
+
   // Find the item index
   const index = (paymentData || []).findIndex(p => String(p.ReceiptNo).trim() === String(receiptNo).trim() && String(p.DistributorName).trim() === String(distributorName).trim());
   if (index === -1) {
     alert("Record not found locally.");
     return;
   }
-  
-  // Optimistic UI Update: Remove immediately from frontend
-  const deletedItem = paymentData.splice(index, 1)[0];
-  localStorage.setItem('cachedPayments', JSON.stringify(paymentData));
-  window.renderPaymentHistory();
 
-  const Toast = Swal.mixin({
-    toast: true,
-    position: 'top-end',
-    showConfirmButton: false,
-    timer: 2000,
-    timerProgressBar: true
-  });
-  Toast.fire({ icon: 'info', title: 'Deleting payment...' });
+  // Disable all delete buttons to prevent double-click
+  const allDeleteBtns = document.querySelectorAll('[onclick*="deletePaymentRecord"]');
+  allDeleteBtns.forEach(btn => btn.disabled = true);
+
+  // Wait for custom confirm modal close animation to fully finish
+  await new Promise(r => setTimeout(r, 250));
+
+  // Show native saveLoaderModal
+  const loaderModal = document.getElementById("saveLoaderModal");
+  const loaderBox = document.getElementById("saveLoaderBox");
+  const loaderMsg = document.getElementById("saveLoaderMessage");
+  if (loaderModal && loaderMsg) {
+    loaderMsg.innerHTML = `Deleting Payment...<br><strong style="color:#0f172a;">${distributorName}</strong>`;
+    loaderModal.style.display = "flex";
+    setTimeout(() => {
+      loaderModal.style.opacity = "1";
+      loaderBox.style.transform = "scale(1)";
+    }, 10);
+  }
 
   try {
     const payload = {
@@ -4557,36 +4643,57 @@ window.deletePaymentRecord = async function (receiptNo, distributorName) {
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify(payload)
     });
-    
+
     const result = await response.json();
     if (result.status === "success" || result.success) {
-      Toast.fire({ icon: 'success', title: 'Deleted successfully!' });
+      paymentData.splice(index, 1);
+      setCache('cachedPayments', paymentData);
+      window.renderPaymentHistory();
+
+      // Close loader
+      if (loaderModal) {
+        loaderModal.style.opacity = "0";
+        setTimeout(() => { loaderModal.style.display = "none"; }, 200);
+      }
+      
+      await new Promise(r => setTimeout(r, 250));
+      await window.customAlertAsync("Deleted Successfully!", `Payment record <strong>(Receipt: ${receiptNo})</strong> for <strong>${distributorName}</strong> has been permanently removed.`, true);
+
       // Refresh background data silently
-      clearCacheFor('cachedPayments');
-      if (typeof window.fetchPayments === 'function') window.fetchPayments();
+      setTimeout(function () {
+        clearCacheFor('cachedPayments');
+        if (typeof window.fetchPayments === 'function') window.fetchPayments();
+      }, 2000);
     } else {
       throw new Error(result.message || "Failed to delete from server");
     }
   } catch (error) {
     console.error("Delete Error:", error);
-    Toast.fire({ icon: 'error', title: 'Failed to delete record.' });
-    // Revert optimistic update
-    paymentData.splice(index, 0, deletedItem);
-    localStorage.setItem('cachedPayments', JSON.stringify(paymentData));
-    window.renderPaymentHistory();
+    
+    // Close loader
+    if (loaderModal) {
+      loaderModal.style.opacity = "0";
+      setTimeout(() => { loaderModal.style.display = "none"; }, 200);
+    }
+    
+    const allDeleteBtnsAfter = document.querySelectorAll('[onclick*="deletePaymentRecord"]');
+    allDeleteBtnsAfter.forEach(btn => btn.disabled = false);
+
+    await new Promise(r => setTimeout(r, 250));
+    await window.customAlertAsync("Delete Failed", `Could not delete the payment record.<br><span style="color:#dc2626; font-weight:600;">Please check your internet connection and try again.</span>`, false);
   }
 };
 
 window.printPaymentStatement = function () {
   const distributorSelect = document.getElementById("paymentDistributorSelect");
   const distributor = distributorSelect ? distributorSelect.value : "";
-  
+
   const tbodySource = document.getElementById("paymentHistoryTableBody");
   if (!tbodySource || tbodySource.innerText.includes("No records found")) {
     alert("No payments to print.");
     return;
   }
-  
+
   const printWindow = window.open('', '', 'height=600,width=800');
   printWindow.document.write('<html><head><title>Payment Ledger Statement</title>');
   printWindow.document.write('<style>');
@@ -4596,16 +4703,16 @@ window.printPaymentStatement = function () {
   printWindow.document.write('th { background-color: #f2f2f2 !important; -webkit-print-color-adjust: exact; color: #000; } ');
   printWindow.document.write('</style>');
   printWindow.document.write('</head><body>');
-  
+
   const fromDateInput = document.getElementById("printFromDate");
   const toDateInput = document.getElementById("printToDate");
   const fromDateStr = fromDateInput ? fromDateInput.value : "";
   const toDateStr = toDateInput ? toDateInput.value : "";
   const fromDate = fromDateStr ? new Date(fromDateStr) : null;
   const toDate = toDateStr ? new Date(toDateStr) : null;
-  
-  if (fromDate) fromDate.setHours(0,0,0,0);
-  if (toDate) toDate.setHours(23,59,59,999);
+
+  if (fromDate) fromDate.setHours(0, 0, 0, 0);
+  if (toDate) toDate.setHours(23, 59, 59, 999);
 
   // Print Header
   printWindow.document.write('<div style="text-align: center; margin-bottom: 20px;">');
@@ -4616,7 +4723,7 @@ window.printPaymentStatement = function () {
   else if (toDateStr) dateText = ` (UPTO ${toDateStr})`;
   printWindow.document.write(`<h3 style="margin: 10px 0 0 0; font-size: 18px; text-transform: uppercase; border-bottom: 2px solid #000; display: inline-block; padding-bottom: 5px;">PAYMENT LEDGER STATEMENT OF ${distName}${dateText}</h3>`);
   printWindow.document.write('</div>');
-  
+
   // Clone tbody and remove the action column
   const clonedTbody = tbodySource.cloneNode(true);
   const rows = Array.from(clonedTbody.querySelectorAll('tr'));
@@ -4633,7 +4740,7 @@ window.printPaymentStatement = function () {
       }
     }
   });
-  
+
   // Print Table
   printWindow.document.write('<table>');
   printWindow.document.write('<thead><tr>');
@@ -4642,26 +4749,26 @@ window.printPaymentStatement = function () {
   printWindow.document.write('<tbody>');
   printWindow.document.write(clonedTbody.innerHTML);
   printWindow.document.write('</tbody>');
-  
+
   // Get total balance from UI
   const totalBalanceEl = document.getElementById("paymentLedgerTotalBalance");
   const totalBalanceHTML = totalBalanceEl ? totalBalanceEl.innerHTML : "-";
-  
+
   printWindow.document.write('<tfoot><tr>');
   printWindow.document.write('<td colspan="2" style="text-align: right; font-weight: bold;">Total Balance:</td>');
   printWindow.document.write(`<td style="text-align: right; font-weight: bold;">${totalBalanceHTML}</td>`);
   printWindow.document.write('<td colspan="4"></td>'); // remaining columns
   printWindow.document.write('</tr></tfoot>');
-  
+
   printWindow.document.write('</table>');
-  
+
   // Footer
   printWindow.document.write('<div style="text-align: center; font-size: 12px; color: #555; margin-top: 30px;">');
   printWindow.document.write('<p style="margin: 5px 0;">Generated by Shehjar Medicate Inventory System</p>');
   printWindow.document.write('</div>');
-  
+
   printWindow.document.write('</body></html>');
-  
+
   printWindow.document.close();
   printWindow.focus();
   setTimeout(() => {
@@ -4790,13 +4897,13 @@ window.renderStockManagementTable = function () {
   }
   const usedMap = {};
   let html = "";
-  
+
   sortedData.forEach(item => {
     const invNo = item.InvoiceNo || item.invoiceNo || '-';
     const prodName = item.ProductDescription || item.ProductName || item.productName;
     const batch = item.Batch || '-';
     const key = invNo + "_" + batch + "_" + prodName;
-    
+
     if (!usedMap[key]) {
       usedMap[key] = {
         sold: window.getSoldQty(invNo, batch, prodName) || 0,
@@ -4805,7 +4912,7 @@ window.renderStockManagementTable = function () {
     }
 
     const rowOrigQty = parseFloat(item.Qty || 0) + parseFloat(item.Free || item.free || 0);
-    
+
     let rowSold = 0;
     if (usedMap[key].sold > 0) {
       rowSold = Math.min(rowOrigQty, usedMap[key].sold);
@@ -4821,7 +4928,7 @@ window.renderStockManagementTable = function () {
     const availQty = rowOrigQty - rowSold - rowReturned;
     const soldQty = rowSold;
     const returnedQty = rowReturned;
-    
+
     let trStyle = "";
     let isExpired = window.isMedicineExpired && window.isMedicineExpired(item);
     if (availQty <= 0) {
@@ -5055,7 +5162,7 @@ window.editSalesReturnItem = async function (invoiceNo) {
     return String(inv).trim().replace(/^SR-/, '') === String(invoiceNo).trim().replace(/^SR-/, '');
   });
   if (items.length === 0) return;
-  
+
   // Close Payment Modal & Sidebar if open
   if (typeof window.closePaymentsModal === 'function') window.closePaymentsModal();
   if (document.getElementById('inventorySidebarOffcanvas')) document.getElementById('inventorySidebarOffcanvas').style.left = '-300px';
@@ -5075,7 +5182,7 @@ window.editSalesReturnItem = async function (invoiceNo) {
 
   const proceed = await customConfirmAsync("If you edit this bill, the existing record will be updated when saved. Do you want to proceed?");
   if (!proceed) return;
-  
+
   // Clear existing items in the sales return form
   window.clearEntireSrBill(true);
   // Set the updating invoice number BEFORE selecting the distributor (so it ignores the current return amount!)
@@ -5103,6 +5210,13 @@ window.editSalesReturnItem = async function (invoiceNo) {
       handleBuyerSelect(bId, 'sr');
     }
   }
+
+  // Lock headers for edit mode
+  ['srInvoiceNo', 'srEntryDate', 'srSupplier', 'srBuyerName'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.readOnly = true; el.style.backgroundColor = '#f1f5f9'; }
+  });
+
   // Add rows back
   const tbody = document.getElementById("srTableBody");
   const inputRow = document.getElementById("srInputRow");
@@ -5133,21 +5247,21 @@ window.editSalesReturnItem = async function (invoiceNo) {
     const sgstAmt = (taxableAmt * parseFloat(sgst || 0)) / 100;
     const cgstAmt = (taxableAmt * parseFloat(cgst || 0)) / 100;
     tr.innerHTML = `
-      <td style="border-right: 1px solid #000; padding: 4px;"><input type="text" class="col-product" value="${prodName}" oninput="calculateAddedSrRowAmount(this)" style="width: 100%; min-width: 140px; border: none; background: transparent; outline: none; font-size: 11px; text-align: left;"></td>
-      <td style="border-right: 1px solid #000; padding: 4px;"><input type="text" class="col-pack" value="${pack}" oninput="calculateAddedSrRowAmount(this)" style="width: 100%; border: none; background: transparent; outline: none; font-size: 11px; text-align: center;"></td>
-      <td style="border-right: 1px solid #000; padding: 4px;"><input type="text" class="col-hsn" value="${hsn}" oninput="calculateAddedSrRowAmount(this)" style="width: 100%; border: none; background: transparent; outline: none; font-size: 11px; text-align: center;"></td>
-      <td style="border-right: 1px solid #000; padding: 4px;"><input type="text" class="col-qty" value="${qty + (free && parseFloat(free) > 0 ? '+' + free : '')}" oninput="calculateAddedSrRowAmount(this)" style="width: 100%; border: none; background: transparent; outline: none; font-size: 11px; text-align: right;"></td>
-      <td style="border-right: 1px solid #000; padding: 4px;"><input type="number" step="any" class="col-mrp" value="${mrp}" oninput="calculateAddedSrRowAmount(this)" style="width: 100%; border: none; background: transparent; outline: none; font-size: 11px; text-align: right;"></td>
-      <td style="border-right: 1px solid #000; padding: 4px;"><input type="text" class="col-batch" value="${batch}" oninput="calculateAddedSrRowAmount(this)" style="width: 100%; border: none; background: transparent; outline: none; font-size: 11px; text-align: center;"></td>
-      <td style="border-right: 1px solid #000; padding: 4px;"><input type="text" class="col-exp" value="${formattedExp}" oninput="if(typeof formatExpiryInput === 'function') formatExpiryInput(event); calculateAddedSrRowAmount(this)" style="width: 100%; border: none; background: transparent; outline: none; font-size: 11px; text-align: center;"></td>
-      <td style="border-right: 1px solid #000; padding: 4px;"><input type="number" step="any" class="col-dis" value="${dis}" data-dis-amt="${disAmt.toFixed(2)}" oninput="calculateAddedSrRowAmount(this)" style="width: 100%; border: none; background: transparent; outline: none; font-size: 11px; text-align: right;"></td>
-      <td style="border-right: 1px solid #000; padding: 4px;"><input type="number" step="any" class="col-sgst" value="${sgst}" oninput="calculateAddedSrRowAmount(this)" style="width: 100%; border: none; background: transparent; outline: none; font-size: 11px; text-align: right;"></td>
+      <td style="border-right: 1px solid #000; padding: 4px;"><input type="text" class="col-product" value="${prodName}" readonly tabindex="-1" style="width: 100%; min-width: 140px; border: none; background: transparent; outline: none; font-size: 11px; text-align: left;"></td>
+      <td style="border-right: 1px solid #000; padding: 4px;"><input type="text" class="col-pack" value="${pack}" readonly tabindex="-1" style="width: 100%; border: none; background: transparent; outline: none; font-size: 11px; text-align: center;"></td>
+      <td style="border-right: 1px solid #000; padding: 4px;"><input type="text" class="col-hsn" value="${hsn}" readonly tabindex="-1" style="width: 100%; border: none; background: transparent; outline: none; font-size: 11px; text-align: center;"></td>
+      <td style="border-right: 1px solid #000; padding: 4px;"><input type="text" class="col-qty" value="${qty + (free && parseFloat(free) > 0 ? '+' + free : '')}" readonly tabindex="-1" style="width: 100%; border: none; background: transparent; outline: none; font-size: 11px; text-align: right;"></td>
+      <td style="border-right: 1px solid #000; padding: 4px;"><input type="number" step="any" class="col-mrp" value="${mrp}" readonly tabindex="-1" style="width: 100%; border: none; background: transparent; outline: none; font-size: 11px; text-align: right;"></td>
+      <td style="border-right: 1px solid #000; padding: 4px;"><input type="text" class="col-batch" value="${batch}" readonly tabindex="-1" style="width: 100%; border: none; background: transparent; outline: none; font-size: 11px; text-align: center;"></td>
+      <td style="border-right: 1px solid #000; padding: 4px;"><input type="text" class="col-exp" value="${formattedExp}" readonly tabindex="-1" style="width: 100%; border: none; background: transparent; outline: none; font-size: 11px; text-align: center;"></td>
+      <td style="border-right: 1px solid #000; padding: 4px;"><input type="number" step="any" class="col-dis" value="${dis}" data-dis-amt="${disAmt.toFixed(2)}" readonly tabindex="-1" style="width: 100%; border: none; background: transparent; outline: none; font-size: 11px; text-align: right;"></td>
+      <td style="border-right: 1px solid #000; padding: 4px;"><input type="number" step="any" class="col-sgst" value="${sgst}" readonly tabindex="-1" style="width: 100%; border: none; background: transparent; outline: none; font-size: 11px; text-align: right;"></td>
       <td style="border-right: 1px solid #000; padding: 4px;"><input type="number" step="any" class="col-sgst-amt" value="${sgstAmt.toFixed(2)}" readonly tabindex="-1" style="width: 100%; border: none; background: transparent; outline: none; font-size: 11px; text-align: right;"></td>
-      <td style="border-right: 1px solid #000; padding: 4px;"><input type="number" step="any" class="col-cgst" value="${cgst}" oninput="calculateAddedSrRowAmount(this)" style="width: 100%; border: none; background: transparent; outline: none; font-size: 11px; text-align: right;"></td>
+      <td style="border-right: 1px solid #000; padding: 4px;"><input type="number" step="any" class="col-cgst" value="${cgst}" readonly tabindex="-1" style="width: 100%; border: none; background: transparent; outline: none; font-size: 11px; text-align: right;"></td>
       <td style="border-right: 1px solid #000; padding: 4px;"><input type="number" step="any" class="col-cgst-amt" value="${cgstAmt.toFixed(2)}" readonly tabindex="-1" style="width: 100%; border: none; background: transparent; outline: none; font-size: 11px; text-align: right;"></td>
-      <td style="border-right: 1px solid #000; padding: 4px;"><input type="number" step="any" class="col-rate" value="${rate}" oninput="calculateAddedSrRowAmount(this)" style="width: 100%; border: none; background: transparent; outline: none; font-size: 11px; text-align: right;"></td>
+      <td style="border-right: 1px solid #000; padding: 4px;"><input type="number" step="any" class="col-rate" value="${rate}" readonly tabindex="-1" style="width: 100%; border: none; background: transparent; outline: none; font-size: 11px; text-align: right;"></td>
       <td style="border-right: 1px solid #000; padding: 4px;"><input type="number" step="any" class="col-amount" value="${amount}" readonly tabindex="-1" style="width: 100%; border: none; background: transparent; outline: none; font-size: 11px; text-align: right; font-weight: bold;"></td>
-      <td style="border-right: 1px solid #000; padding: 4px;"><input type="text" class="col-company" value="${company}" oninput="calculateAddedSrRowAmount(this)" style="width: 100%; border: none; background: transparent; outline: none; font-size: 11px; text-align: left; text-transform: uppercase;"></td>
+      <td style="border-right: 1px solid #000; padding: 4px;"><input type="text" class="col-company" value="${company}" readonly tabindex="-1" style="width: 100%; border: none; background: transparent; outline: none; font-size: 11px; text-align: left; text-transform: uppercase;"></td>
       <td style="border-right: 1px solid #000; padding: 4px;"><input type="text" class="col-orig-invoice-no" value="${origInvoiceNo}" readonly tabindex="-1" style="width: 100%; border: none; background: transparent; outline: none; font-size: 11px; text-align: left;"></td>
       <td style="border-right: 1px solid #000; padding: 4px;"><input type="text" class="col-orig-buyer-id" value="${origBuyerId}" readonly tabindex="-1" style="width: 100%; border: none; background: transparent; outline: none; font-size: 11px; text-align: left;"></td>
       <td style="padding: 4px; text-align: center;"><button type="button" tabindex="-1" onclick="deleteSrRow(this)" style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 2px;"><i class="fas fa-trash-alt"></i></button></td>
@@ -5208,7 +5322,7 @@ window.deleteSalesReturn = async function (btn, invoiceNo, productName) {
 };
 
 // Global event listener to automatically convert all text inputs to uppercase in the inventory section
-document.addEventListener('input', function(e) {
+document.addEventListener('input', function (e) {
   if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {
     const type = e.target.type ? e.target.type.toLowerCase() : 'text';
     // Apply to text, search, and textareas
@@ -5216,13 +5330,13 @@ document.addEventListener('input', function(e) {
       const start = e.target.selectionStart;
       const end = e.target.selectionEnd;
       const upperValue = e.target.value.toUpperCase();
-      
+
       if (e.target.value !== upperValue) {
         e.target.value = upperValue;
         // Restore cursor position to prevent jumping
         try {
           e.target.setSelectionRange(start, end);
-        } catch (err) {}
+        } catch (err) { }
       }
     }
   }
@@ -5235,7 +5349,7 @@ document.addEventListener('input', function(e) {
 let draggedColId = null;
 let dragSourceIndex = -1;
 
-window.handleDragStart = function(e) {
+window.handleDragStart = function (e) {
   draggedColId = e.target.getAttribute('data-col-id');
   dragSourceIndex = Array.from(e.target.parentNode.children).indexOf(e.target);
   e.dataTransfer.effectAllowed = 'move';
@@ -5243,13 +5357,13 @@ window.handleDragStart = function(e) {
   e.target.style.opacity = '0.4';
 };
 
-window.handleDragOver = function(e) {
+window.handleDragOver = function (e) {
   e.preventDefault();
   e.dataTransfer.dropEffect = 'move';
   return false;
 };
 
-window.handleDragEnter = function(e) {
+window.handleDragEnter = function (e) {
   e.preventDefault();
   let target = e.target.closest('th');
   if (target && target.getAttribute('data-col-id') !== 'col-action' && target.getAttribute('data-col-id') !== draggedColId) {
@@ -5257,7 +5371,7 @@ window.handleDragEnter = function(e) {
   }
 };
 
-window.handleDragLeave = function(e) {
+window.handleDragLeave = function (e) {
   let target = e.target.closest('th');
   if (target) {
     target.style.border = '1px solid #000'; // Reset border to original
@@ -5265,28 +5379,28 @@ window.handleDragLeave = function(e) {
   }
 };
 
-window.handleDrop = function(e) {
+window.handleDrop = function (e) {
   e.stopPropagation();
   let target = e.target.closest('th');
   if (target) {
     target.style.border = '1px solid #000';
     target.style.borderRight = '1px solid #000';
   }
-  
+
   if (draggedColId && target && target.getAttribute('data-col-id') && target.getAttribute('data-col-id') !== 'col-action') {
     let targetColId = target.getAttribute('data-col-id');
     if (draggedColId !== targetColId) {
       reorderTableColumns(draggedColId, targetColId);
     }
   }
-  
+
   let sourceTh = document.querySelector(`th[data-col-id="${draggedColId}"]`);
   if (sourceTh) sourceTh.style.opacity = '1';
-  
+
   return false;
 };
 
-document.addEventListener("dragend", function(e) {
+document.addEventListener("dragend", function (e) {
   if (e.target.tagName === 'TH') {
     e.target.style.opacity = '1';
     document.querySelectorAll('th[data-col-id]').forEach(th => {
@@ -5299,23 +5413,23 @@ document.addEventListener("dragend", function(e) {
 function reorderTableColumns(sourceColId, targetColId) {
   const table = document.querySelector('#billTableBody') ? document.querySelector('#billTableBody').closest('table') : null;
   if (!table) return;
-  
+
   const theadRow = table.querySelector('thead tr');
   const sourceTh = theadRow.querySelector(`th[data-col-id="${sourceColId}"]`);
   const targetTh = theadRow.querySelector(`th[data-col-id="${targetColId}"]`);
-  
+
   if (!sourceTh || !targetTh) return;
-  
+
   const sourceIndex = Array.from(theadRow.children).indexOf(sourceTh);
   const targetIndex = Array.from(theadRow.children).indexOf(targetTh);
-  
+
   // Move TH
   if (targetIndex > sourceIndex) {
     targetTh.after(sourceTh);
   } else {
     targetTh.before(sourceTh);
   }
-  
+
   // Move #inputRow TD
   const inputRow = document.getElementById('inputRow');
   if (inputRow) {
@@ -5326,7 +5440,7 @@ function reorderTableColumns(sourceColId, targetColId) {
       else targetTd.before(sourceTd);
     }
   }
-  
+
   // Move .added-row TDs
   const addedRows = table.querySelectorAll('tbody#billTableBody tr.added-row');
   addedRows.forEach(row => {
@@ -5337,38 +5451,38 @@ function reorderTableColumns(sourceColId, targetColId) {
       if (input && input.classList.contains(sourceColId)) sTd = td;
       if (input && input.classList.contains(targetColId)) tTd = td;
     });
-    
+
     if (sTd && tTd) {
       if (targetIndex > sourceIndex) tTd.after(sTd);
       else tTd.before(sTd);
     }
   });
-  
+
   saveColumnOrder();
 }
 
 function saveColumnOrder() {
   const theadRow = document.querySelector('#billTableBody') ? document.querySelector('#billTableBody').closest('table').querySelector('thead tr') : null;
   if (!theadRow) return;
-  
+
   const order = Array.from(theadRow.children).map(th => th.getAttribute('data-col-id')).filter(id => id && id !== 'col-action');
   localStorage.setItem('invoiceColumnOrder', JSON.stringify(order));
 }
 
-window.applySavedColumnOrder = function() {
+window.applySavedColumnOrder = function () {
   const saved = localStorage.getItem('invoiceColumnOrder');
   if (!saved) return;
-  
+
   try {
     const order = JSON.parse(saved);
     if (!Array.isArray(order) || order.length === 0) return;
-    
+
     const table = document.querySelector('#billTableBody') ? document.querySelector('#billTableBody').closest('table') : null;
     if (!table) return;
-    
+
     const theadRow = table.querySelector('thead tr');
     const inputRow = document.getElementById('inputRow');
-    
+
     let actionTd = null;
     if (inputRow) {
       // Find the action TD which might not have an ID yet, but it's the empty one or the one without data-col-id
@@ -5378,7 +5492,7 @@ window.applySavedColumnOrder = function() {
         actionTd.setAttribute('data-col-id', 'col-action');
       }
     }
-    
+
     order.forEach(colId => {
       // Reorder TH
       if (theadRow) {
@@ -5388,25 +5502,25 @@ window.applySavedColumnOrder = function() {
           theadRow.insertBefore(th, actionTh); // Insert before the action column to keep it last
         }
       }
-      
+
       // Reorder #inputRow TD
       if (inputRow) {
         const td = inputRow.querySelector(`td[data-col-id="${colId}"]`);
         if (td) inputRow.appendChild(td);
       }
     });
-    
+
     // Finally, ensure the action TD is at the end of inputRow
     if (inputRow && actionTd) {
       inputRow.appendChild(actionTd);
     }
-    
-  } catch(e) {
+
+  } catch (e) {
     console.error("Error applying saved column order:", e);
   }
 }
 
-window.reorderAddedRow = function(tr) {
+window.reorderAddedRow = function (tr) {
   if (tr.querySelector('.col-orig-invoice-no') || tr.querySelector('.col-orig-buyer-id') || tr.closest('#srTableBody')) {
     return;
   }
@@ -5415,10 +5529,10 @@ window.reorderAddedRow = function(tr) {
   try {
     const order = JSON.parse(saved);
     if (!Array.isArray(order) || order.length === 0) return;
-    
+
     const tdMap = {};
     const actionTd = tr.lastElementChild; // Delete button is always last in the raw HTML string
-    
+
     Array.from(tr.children).forEach(td => {
       let input = td.querySelector('input');
       if (input) {
@@ -5427,17 +5541,17 @@ window.reorderAddedRow = function(tr) {
         if (colClass) tdMap[colClass] = td;
       }
     });
-    
+
     order.forEach(colId => {
       if (tdMap[colId]) {
         tr.appendChild(tdMap[colId]);
       }
     });
-    
+
     // finally append action td
     tr.appendChild(actionTd);
-    
-  } catch(e) {}
+
+  } catch (e) { }
 }
 
 // Call on page load
@@ -5445,7 +5559,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setTimeout(() => window.applySavedColumnOrder(), 500);
 });
 
-window.handleTableKeyNavigation = function(e) {
+window.handleTableKeyNavigation = function (e) {
   const target = e.target;
   if (target.tagName !== 'INPUT') return;
 
@@ -5459,7 +5573,7 @@ window.handleTableKeyNavigation = function(e) {
     const cellIndex = Array.from(tr.children).indexOf(td);
 
     let targetTr = e.key === 'ArrowDown' ? tr.nextElementSibling : tr.previousElementSibling;
-    
+
     // Skip non-data rows if any
     while (targetTr && (!targetTr.classList.contains('added-row') && targetTr.id !== 'inputRow' && targetTr.id !== 'srInputRow')) {
       targetTr = e.key === 'ArrowDown' ? targetTr.nextElementSibling : targetTr.previousElementSibling;
@@ -5485,7 +5599,7 @@ window.handleTableKeyNavigation = function(e) {
     e.preventDefault();
     const inputs = Array.from(tr.querySelectorAll('input:not([readonly]):not([tabindex="-1"])'));
     const index = inputs.indexOf(target);
-    
+
     if (index > -1 && index < inputs.length - 1) {
       // Move to next input in same row
       inputs[index + 1].focus();
@@ -5507,7 +5621,7 @@ window.handleTableKeyNavigation = function(e) {
         if (tr.classList.contains('added-row')) {
           const type = tr.closest('tbody').id === 'srTableBody' ? 'sr' : 'inv';
           const oldRowCount = tr.closest('tbody').querySelectorAll('tr.added-row').length;
-          
+
           // Temporarily set bulk count to 1 to add exactly one row
           const bulkInput = document.getElementById(type === 'inv' ? 'bulkRowCount_inv' : 'bulkRowCount_sr');
           const oldVal = bulkInput ? bulkInput.value : "1";
@@ -5524,11 +5638,11 @@ window.handleTableKeyNavigation = function(e) {
           const prevCgstVal = cgstField ? cgstField.value : "2.5";
           if (sgstField && curSgstInput) sgstField.value = curSgstInput.value || prevSgstVal;
           if (cgstField && curCgstInput) cgstField.value = curCgstInput.value || prevCgstVal;
-          
+
           if (typeof window.addBulkEmptyRows === 'function') {
             window.addBulkEmptyRows(type);
           }
-          
+
           // Restore original values
           if (bulkInput) bulkInput.value = oldVal;
           if (sgstField) sgstField.value = prevSgstVal;
@@ -5550,9 +5664,16 @@ window.handleTableKeyNavigation = function(e) {
   }
 };
 
-window.warnOnEditIfUpdating = async function(element, fieldName) {
-  // Only warn if we are currently updating an existing bill/return
-  if (!window.currentUpdatingInvoiceNo && !window.currentUpdatingSrInvoiceNo) return true;
+window.warnOnEditIfUpdating = async function (element, fieldName) {
+  const isSalesReturnField = element.closest('#inventorySalesReturnView') !== null;
+  const isInvoiceField = element.closest('#inventoryInvoiceView') !== null;
+
+  // Isolate warnings: only warn if updating the respective bill type
+  if (isSalesReturnField && !window.currentUpdatingSrInvoiceNo) return true;
+  if (isInvoiceField && !window.currentUpdatingInvoiceNo) return true;
+  if (!isSalesReturnField && !isInvoiceField) {
+    if (!window.currentUpdatingInvoiceNo && !window.currentUpdatingSrInvoiceNo) return true;
+  }
 
   // We should only warn if the value ACTUALLY changed. We can track it with a dataset attribute
   if (element.dataset.oldVal !== undefined && element.value === element.dataset.oldVal) {
@@ -5571,7 +5692,7 @@ window.warnOnEditIfUpdating = async function(element, fieldName) {
   }
   htmlMsg += `<p style="color: #b91c1c; font-weight: 600; margin-top: 10px;">The system is not responsible for any data mismatches or incorrect calculations that occur as a result of this change. You are making this change at your own risk.</p>`;
   htmlMsg += `<p style="margin-top: 10px; font-weight: 600;">Are you sure you want to proceed and save this change?</p></div>`;
-  
+
   const isConfirmed = await Swal.fire({
     title: `Editing ${fieldName}`,
     html: htmlMsg,
@@ -5598,17 +5719,18 @@ window.warnOnEditIfUpdating = async function(element, fieldName) {
     }
     return false;
   }
-  
+
   // If confirmed, update the oldVal so we don't ask again for the same new value
   element.dataset.oldVal = element.value;
   return true;
 };
 
-window.attachEditWarnings = function(containerId) {
+window.attachEditWarnings = function (containerId) {
   const container = document.getElementById(containerId);
   if (!container) return;
   const allInputs = container.querySelectorAll('input:not([readonly])');
   allInputs.forEach(inp => {
+    if (inp.closest('#inputRow') || inp.closest('#srInputRow')) return;
     let fieldName = "Field";
     if (inp.id === 'invInvoiceNo') fieldName = "Invoice Number";
     else if (inp.id === 'srInvoiceNo') fieldName = "S. Return Number";
@@ -5628,32 +5750,32 @@ window.attachEditWarnings = function(containerId) {
     else if (inp.classList.contains('col-rate')) fieldName = "Rate";
     else if (inp.classList.contains('col-company')) fieldName = "Company";
 
-    inp.addEventListener('focus', function() {
+    inp.addEventListener('focus', function () {
       if (this.dataset.oldVal === undefined) {
         this.dataset.oldVal = this.value;
       }
     });
-    
-    inp.addEventListener('change', function() {
+
+    inp.addEventListener('change', function () {
       window.warnOnEditIfUpdating(this, fieldName);
     });
   });
 };
 
-window.toggleBillRows = function(invId) {
+window.toggleBillRows = function (invId) {
   const rows = document.querySelectorAll('.bill-item-' + invId);
   const icon = document.getElementById('icon-' + invId);
   let isOpening = false;
-  
+
   if (rows.length > 0) {
     // Check first row to see current state
     if (rows[0].style.display === 'none') isOpening = true;
   }
-  
+
   rows.forEach(r => {
     r.style.display = isOpening ? 'table-row' : 'none';
   });
-  
+
   if (icon) {
     if (isOpening) {
       icon.classList.remove('fa-chevron-down');
@@ -5665,4 +5787,671 @@ window.toggleBillRows = function(invId) {
   }
 };
 
+
+
+// =====================================================
+// --- PRODUCT NAME AUTOCOMPLETE DROPDOWN LOGIC ---
+// =====================================================
+(function initProductAutocomplete() {
+
+  // Inject styles once
+  if (!document.getElementById('inv-autocomplete-style')) {
+    const style = document.createElement('style');
+    style.id = 'inv-autocomplete-style';
+    style.innerHTML = `
+      .inv-ac-list {
+        position: fixed;
+        z-index: 99999;
+        background: #fff;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        max-height: 240px;
+        overflow-y: auto;
+        font-family: 'Inter', system-ui, sans-serif;
+      }
+      .inv-ac-item {
+        padding: 7px 10px;
+        cursor: pointer;
+        font-size: 11px;
+        font-weight: 600;
+        color: #334155;
+        border-bottom: 1px solid #f1f5f9;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .inv-ac-item:last-child { border-bottom: none; }
+      .inv-ac-item:hover, .inv-ac-item.active {
+        background: #3b82f6;
+        color: #fff;
+      }
+      .inv-ac-item .inv-ac-match { color: #f97316; font-weight: 800; }
+      .inv-ac-item.active .inv-ac-match { color: #fed7aa; }
+    `;
+    document.head.appendChild(style);
+  }
+
+  let currentFocus = -1;
+  let dropdownEl = null;
+
+  function closeDropdown() {
+    if (dropdownEl && dropdownEl.parentNode) {
+      dropdownEl.parentNode.removeChild(dropdownEl);
+    }
+    dropdownEl = null;
+    currentFocus = -1;
+  }
+
+  function getUniqueMatches(query) {
+    const q = query.toLowerCase();
+    // Map: normalizedName -> most recent item (last occurrence in array = most recent appended)
+    const matched = new Map();
+    const data = window.inventoryData || [];
+    for (let i = 0; i < data.length; i++) {
+      const item = data[i];
+      const pName = (item.ProductDescription || item.ProductName || item.productName || '').trim();
+      if (pName && pName.toLowerCase().includes(q)) {
+        matched.set(pName.toLowerCase(), item); // later entries overwrite earlier = most recent
+      }
+    }
+    return matched;
+  }
+
+  function positionDropdown(inputEl) {
+    if (!dropdownEl) return;
+    const rect = inputEl.getBoundingClientRect();
+    dropdownEl.style.top = rect.bottom + 'px';
+    dropdownEl.style.left = rect.left + 'px';
+    dropdownEl.style.width = Math.max(rect.width, 220) + 'px';
+  }
+
+  function buildDropdown(inputEl, matches) {
+    closeDropdown();
+    if (matches.size === 0) return;
+
+    dropdownEl = document.createElement('div');
+    dropdownEl.className = 'inv-ac-list';
+    dropdownEl.id = 'inv-ac-dropdown';
+
+    const q = inputEl.value;
+
+    matches.forEach(function (item, key) {
+      const pName = (item.ProductDescription || item.ProductName || item.productName || '').trim();
+      const div = document.createElement('div');
+      div.className = 'inv-ac-item';
+
+      // Highlight matching portion
+      const idx = pName.toLowerCase().indexOf(q.toLowerCase());
+      if (idx !== -1) {
+        div.innerHTML =
+          window.escapeHtml(pName.slice(0, idx)) +
+          '<span class="inv-ac-match">' + window.escapeHtml(pName.slice(idx, idx + q.length)) + '</span>' +
+          window.escapeHtml(pName.slice(idx + q.length));
+      } else {
+        div.textContent = pName;
+      }
+
+      div.addEventListener('mousedown', function (e) {
+        e.preventDefault(); // prevent blur on input before click fires
+        selectProduct(inputEl, pName, item);
+      });
+      dropdownEl.appendChild(div);
+    });
+
+    // Append to body so table overflow does NOT clip it
+    document.body.appendChild(dropdownEl);
+    positionDropdown(inputEl);
+  }
+
+  function selectProduct(inputEl, pName, item) {
+    inputEl.value = pName;
+    closeDropdown();
+
+    // Helper – only fill if empty
+    function fillIfEmpty(id, val) {
+      const el = document.getElementById(id);
+      if (el && !el.value && val) el.value = val;
+    }
+
+    fillIfEmpty('invPack', item.Pack || item.pack || '');
+    fillIfEmpty('invHSN', item.HSN || item.hsn || item.hsncode || '');
+    fillIfEmpty('invMRP', item.MRP || item.mrp || '');
+    fillIfEmpty('invBatch', item.Batch || item.batch || '');
+    fillIfEmpty('invExp', item.Exp || item.exp || item.Expiry || '');
+    fillIfEmpty('invDis', item.Dis || item.dis || item.Discount || '');
+    fillIfEmpty('invSGST', item.SGST || item.sgst || '');
+    fillIfEmpty('invSGSTAmt', item.SGSTAmt || item.sgstAmt || '');
+    fillIfEmpty('invCGST', item.CGST || item.cgst || '');
+    fillIfEmpty('invCGSTAmt', item.CGSTAmt || item.cgstAmt || '');
+    fillIfEmpty('invRate', item.Rate || item.rate || '');
+    fillIfEmpty('invCompany', item.Company || item.company || item.Mfg || '');
+
+    // Recalculate amount if Qty is already set
+    if (typeof window.calculateInvAmount === 'function') {
+      window.calculateInvAmount();
+    }
+
+    // Move focus to Qty field for quick entry
+    const qtyEl = document.getElementById('invQty');
+    if (qtyEl) qtyEl.focus();
+  }
+
+  function attachTo(inputEl) {
+    if (!inputEl || inputEl.dataset.acAttached) return;
+    inputEl.dataset.acAttached = '1';
+    inputEl.setAttribute('autocomplete', 'off');
+
+    inputEl.addEventListener('input', function () {
+      const val = this.value.trim();
+      if (!val || val.length < 1) { closeDropdown(); return; }
+      const matches = getUniqueMatches(val);
+      buildDropdown(this, matches);
+    });
+
+    inputEl.addEventListener('keydown', function (e) {
+      if (!dropdownEl) return;
+      const items = dropdownEl.querySelectorAll('.inv-ac-item');
+      if (!items.length) return;
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (currentFocus < items.length - 1) currentFocus++;
+        else currentFocus = 0;
+        items.forEach(function (el) { el.classList.remove('active'); });
+        items[currentFocus].classList.add('active');
+        items[currentFocus].scrollIntoView({ block: 'nearest' });
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (currentFocus > 0) currentFocus--;
+        else currentFocus = items.length - 1;
+        items.forEach(function (el) { el.classList.remove('active'); });
+        items[currentFocus].classList.add('active');
+        items[currentFocus].scrollIntoView({ block: 'nearest' });
+      } else if (e.key === 'Enter') {
+        if (currentFocus > -1 && items[currentFocus]) {
+          e.preventDefault();
+          items[currentFocus].dispatchEvent(new MouseEvent('mousedown'));
+        }
+      } else if (e.key === 'Escape') {
+        closeDropdown();
+      }
+    });
+
+    inputEl.addEventListener('blur', function () {
+      // small delay so mousedown on item fires first
+      setTimeout(closeDropdown, 150);
+    });
+  }
+
+  // Attach to main input row once DOM is ready
+  function tryAttach() {
+    const el = document.getElementById('invProductName');
+    if (el) {
+      attachTo(el);
+    } else {
+      setTimeout(tryAttach, 300);
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', tryAttach);
+  } else {
+    tryAttach();
+  }
+
+  // Also close dropdown on any outside click
+  document.addEventListener('click', function (e) {
+    if (dropdownEl && !dropdownEl.contains(e.target) && e.target.id !== 'invProductName') {
+      closeDropdown();
+    }
+  });
+
+  // Expose so other code can call if needed
+  window.attachProductAutocomplete = attachTo;
+
+})();
+
+// ==========================================
+// PATIENT BILLING MODULE (PRINT ONLY)
+// ==========================================
+
+window.openPatientBillingView = function () {
+  // Hide all other views
+  document.getElementById('inventoryDashboardView').style.display = 'none';
+  document.getElementById('inventoryInvoiceView').style.display = 'none';
+  document.getElementById('inventorySalesReturnView').style.display = 'none';
+  if (document.getElementById('inventoryReturnedItemsView')) document.getElementById('inventoryReturnedItemsView').style.display = 'none';
+  if (document.getElementById('inventoryBillManagementTableContainer')) document.getElementById('inventoryBillManagementTableContainer').style.display = 'none';
+  if (document.getElementById('inventoryStockManagementTableContainer')) document.getElementById('inventoryStockManagementTableContainer').style.display = 'none';
+
+  // Setup sidebar state if needed
+  const offcanvas = document.getElementById('inventorySidebarOffcanvas');
+  if (offcanvas) offcanvas.style.left = '-300px';
+  const backdrop = document.getElementById('inventorySidebarBackdrop');
+  if (backdrop) backdrop.style.display = 'none';
+  
+  const closeBtn = document.getElementById('inventorySidebarCloseBtn');
+  if (closeBtn) closeBtn.style.display = 'block';
+
+  // Show Patient Billing
+  document.getElementById('inventoryPatientBillingView').style.display = 'block';
+  
+  // Initialize defaults
+  if (!document.getElementById('pbDate').value) {
+    document.getElementById('pbDate').valueAsDate = new Date();
+  }
+
+  // Populate datalist
+  window.populatePatientBillDatalist();
+
+  // Add first row if empty
+  if (document.getElementById('pbTableBody').children.length === 0) {
+    window.addPatientBillRow();
+  }
+};
+
+window.closePatientBillingView = function () {
+  document.getElementById('inventoryPatientBillingView').style.display = 'none';
+  document.getElementById('inventoryDashboardView').style.display = 'block';
+  
+  // Reset sidebar to its default CSS state
+  const offcanvas = document.getElementById('inventorySidebarOffcanvas');
+  if (offcanvas) offcanvas.style.left = '';
+};
+
+window.pbUniqueSoldItems = [];
+
+window.populatePatientBillDatalist = function () {
+  if (!soldOutData || !soldOutData.length) return;
+  
+  // Sort sold out data by date (newest first)
+  const sorted = [...soldOutData].sort((a, b) => {
+    const d1 = new Date(a['Date Sold'] || a.DateSold || 0);
+    const d2 = new Date(b['Date Sold'] || b.DateSold || 0);
+    return d2 - d1;
+  });
+
+  // Extract unique medicine names
+  const uniqueNames = new Set();
+  window.pbUniqueSoldItems = [];
+  for (const item of sorted) {
+    const name = item['Medicine Name'] || item.MedicineName || item.ProductName || '';
+    if (name && !uniqueNames.has(name)) {
+      uniqueNames.add(name);
+      window.pbUniqueSoldItems.push({ name: name, rate: item.Rate || item['MRP (Rs.)'] || '' });
+    }
+  }
+};
+
+window.attachPbAutocomplete = function (input) {
+  const container = document.getElementById('pbDropdownContainer');
+  if (!container) return;
+  
+  // If we haven't populated yet but have data, do it now
+  if (window.pbUniqueSoldItems.length === 0 && soldOutData && soldOutData.length > 0) {
+    window.populatePatientBillDatalist();
+  }
+  
+  const showDropdown = () => {
+    const val = input.value.toLowerCase();
+    const rect = input.getBoundingClientRect();
+    
+    // Position dropdown relative to the input
+    const scrollY = window.scrollY || window.pageYOffset;
+    const scrollX = window.scrollX || window.pageXOffset;
+    
+    container.style.left = (rect.left + scrollX) + 'px';
+    container.style.top = (rect.bottom + scrollY) + 'px';
+    container.style.width = rect.width + 'px';
+    
+    let filtered = window.pbUniqueSoldItems || [];
+    if (val) {
+      filtered = filtered.filter(item => item.name.toLowerCase().includes(val));
+    }
+    
+    if (filtered.length === 0) {
+      container.style.display = 'none';
+      return;
+    }
+    
+    let html = '';
+    filtered.slice(0, 100).forEach(item => {
+      const cleanName = item.name.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+      html += `
+        <div class="pb-dropdown-item" style="padding: 6px 10px; cursor: pointer; font-size: 11px; font-weight: 600; border-bottom: 1px solid #e2e8f0; background: #eff6ff; color: #0f172a; transition: 0.1s;" 
+             onmouseover="if(window.pbDropdownSelectedIndex === -1) { this.style.background='#dbeafe'; }" 
+             onmouseout="if(window.pbDropdownSelectedIndex === -1) { this.style.background='#eff6ff'; }" 
+             data-name="${cleanName}" data-rate="${item.rate}">
+          ${item.name}
+        </div>`;
+    });
+    
+    container.innerHTML = html;
+    container.style.display = 'block';
+    
+    // Add click listeners
+    container.querySelectorAll('.pb-dropdown-item').forEach(div => {
+      div.onclick = function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        input.value = this.getAttribute('data-name');
+        const rate = this.getAttribute('data-rate');
+        const tr = input.closest('tr');
+        if (tr) {
+          const rateInput = tr.querySelector('.pb-rate');
+          if (rateInput && !rateInput.value && rate) {
+            rateInput.value = parseFloat(rate).toFixed(2);
+            window.calcPatientBillRow(rateInput);
+          }
+        }
+        container.style.display = 'none';
+      };
+    });
+    
+    // Reset selection state when shown
+    window.pbDropdownSelectedIndex = -1;
+  };
+
+  input.showDropdown = showDropdown;
+
+  const handleKeyDown = (e) => {
+    if (container.style.display === 'none') return;
+    const items = container.querySelectorAll('.pb-dropdown-item');
+    if (!items.length) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      window.pbDropdownSelectedIndex++;
+      if (window.pbDropdownSelectedIndex >= items.length) window.pbDropdownSelectedIndex = 0;
+      updateSelection(items);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      window.pbDropdownSelectedIndex--;
+      if (window.pbDropdownSelectedIndex < 0) window.pbDropdownSelectedIndex = items.length - 1;
+      updateSelection(items);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (window.pbDropdownSelectedIndex >= 0 && window.pbDropdownSelectedIndex < items.length) {
+        items[window.pbDropdownSelectedIndex].click();
+      }
+    }
+  };
+
+  const updateSelection = (items) => {
+    items.forEach((el, index) => {
+      if (index === window.pbDropdownSelectedIndex) {
+        el.style.background = '#3b82f6';
+        el.style.color = 'white';
+        el.scrollIntoView({ block: 'nearest' });
+      } else {
+        el.style.background = '#eff6ff';
+        el.style.color = '#0f172a';
+      }
+    });
+  };
+
+  // Avoid attaching multiple times
+  if (!input.dataset.autocompleteAttached) {
+    input.addEventListener('focus', showDropdown);
+    input.addEventListener('input', showDropdown);
+    input.addEventListener('keydown', handleKeyDown);
+    input.dataset.autocompleteAttached = 'true';
+    
+    // click anywhere to close
+    document.addEventListener('click', (e) => {
+      if (e.target !== input && !input.nextElementSibling?.contains(e.target) && !container.contains(e.target)) {
+        container.style.display = 'none';
+      }
+    });
+  }
+  
+  // Show it immediately if called on focus
+  if (document.activeElement === input) {
+    showDropdown();
+  }
+};
+
+window.addPatientBillRow = function () {
+  const tbody = document.getElementById('pbTableBody');
+  const tr = document.createElement('tr');
+  tr.style.borderBottom = '1px solid #e2e8f0';
+  tr.innerHTML = `
+    <td style="padding: 4px 6px; border-right: 1px solid #e2e8f0; position: relative;">
+      <div style="display: flex; align-items: center; border: none; background: transparent;">
+        <input type="text" class="pb-item-name" onfocus="attachPbAutocomplete(this)" placeholder="Type item..." style="flex: 1; border: none; outline: none; background: transparent; font-size: 11px; font-weight: 600;">
+        <i class="fas fa-chevron-down" style="font-size: 10px; color: #94a3b8; cursor: pointer; padding: 2px;" onclick="const inp = this.previousElementSibling; if(inp.showDropdown){inp.focus();inp.showDropdown();}else{attachPbAutocomplete(inp);}"></i>
+      </div>
+    </td>
+    <td style="padding: 4px 6px; border-right: 1px solid #e2e8f0;">
+      <input type="number" class="pb-qty" oninput="calcPatientBillRow(this)" placeholder="Qty" style="width: 100%; border: none; outline: none; background: transparent; font-size: 11px; text-align: center; font-weight: 600;">
+    </td>
+    <td style="padding: 4px 6px; border-right: 1px solid #e2e8f0;">
+      <input type="number" class="pb-rate" oninput="calcPatientBillRow(this)" placeholder="0.00" step="any" style="width: 100%; border: none; outline: none; background: transparent; font-size: 11px; text-align: center; font-weight: 600;">
+    </td>
+    <td style="padding: 4px 6px; border-right: 1px solid #e2e8f0; text-align: right; font-weight: 800; font-size: 12px; color: #0f172a;">
+      ₹ <span class="pb-amt">0.00</span>
+    </td>
+    <td style="padding: 4px 6px; text-align: center;">
+      <button type="button" onclick="deletePatientBillRow(this)" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 12px; transition: 0.2s;" onmouseover="this.style.color='#b91c1c'" onmouseout="this.style.color='#ef4444'"><i class="fas fa-trash-alt"></i></button>
+    </td>
+  `;
+  tbody.appendChild(tr);
+};
+
+window.deletePatientBillRow = function (btn) {
+  const tr = btn.closest('tr');
+  if (tr) tr.remove();
+  window.calcPatientBillTotals();
+};
+
+window.calcPatientBillRow = function (input) {
+  const tr = input.closest('tr');
+  const qty = parseFloat(tr.querySelector('.pb-qty').value) || 0;
+  const rate = parseFloat(tr.querySelector('.pb-rate').value) || 0;
+  const amt = qty * rate;
+  tr.querySelector('.pb-amt').textContent = amt.toFixed(2);
+  window.calcPatientBillTotals();
+};
+
+window.calcPatientBillTotals = function () {
+  const amts = document.querySelectorAll('.pb-amt');
+  let subtotal = 0;
+  amts.forEach(span => {
+    subtotal += parseFloat(span.textContent) || 0;
+  });
+  
+  document.getElementById('pbSubtotal').textContent = subtotal.toFixed(2);
+  
+  // Re-apply discount logic
+  const discPercent = parseFloat(document.getElementById('pbDiscountPercent').value) || 0;
+  let finalTotal = subtotal;
+  if (discPercent > 0) {
+    const discAmt = (subtotal * discPercent) / 100;
+    document.getElementById('pbDiscountAmount').value = discAmt.toFixed(2);
+    finalTotal = subtotal - discAmt;
+  } else {
+    const discAmt = parseFloat(document.getElementById('pbDiscountAmount').value) || 0;
+    if (discAmt > 0 && subtotal > 0) {
+      document.getElementById('pbDiscountPercent').value = ((discAmt / subtotal) * 100).toFixed(2);
+      finalTotal = subtotal - discAmt;
+    } else {
+      document.getElementById('pbDiscountAmount').value = '';
+      document.getElementById('pbDiscountPercent').value = '';
+    }
+  }
+  
+  document.getElementById('pbFinalTotal').textContent = Math.max(0, finalTotal).toFixed(2);
+};
+
+window.handlePatientBillDiscountChange = function (changedField) {
+  const subtotal = parseFloat(document.getElementById('pbSubtotal').textContent) || 0;
+  if (changedField === 'percent') {
+    const p = parseFloat(document.getElementById('pbDiscountPercent').value) || 0;
+    const amt = (subtotal * p) / 100;
+    document.getElementById('pbDiscountAmount').value = p === 0 ? '' : amt.toFixed(2);
+  } else if (changedField === 'amount') {
+    const amt = parseFloat(document.getElementById('pbDiscountAmount').value) || 0;
+    if (subtotal > 0) {
+      const p = (amt / subtotal) * 100;
+      document.getElementById('pbDiscountPercent').value = amt === 0 ? '' : p.toFixed(2);
+    }
+  }
+  window.calcPatientBillTotals();
+};
+
+window.clearPatientBill = function () {
+  document.getElementById('pbPatientName').value = '';
+  document.getElementById('pbDate').valueAsDate = new Date();
+  document.getElementById('pbTableBody').innerHTML = '';
+  document.getElementById('pbDiscountPercent').value = '';
+  document.getElementById('pbDiscountAmount').value = '';
+  document.getElementById('pbNotes').value = '';
+  const checkedStatus = document.querySelector('input[name="pbStatus"]:checked');
+  if (checkedStatus) checkedStatus.checked = false;
+  window.calcPatientBillTotals();
+  window.addPatientBillRow();
+};
+
+// Compact Print Invoice Generator
+window.printPatientBill = function () {
+  const patientName = document.getElementById('pbPatientName').value || 'Cash Patient';
+  const billDate = document.getElementById('pbDate').value || new Date().toISOString().split('T')[0];
+  const subtotal = document.getElementById('pbSubtotal').textContent;
+  const discPercent = document.getElementById('pbDiscountPercent').value;
+  const discAmt = document.getElementById('pbDiscountAmount').value;
+  const finalTotal = document.getElementById('pbFinalTotal').textContent;
+  const statusEl = document.querySelector('input[name="pbStatus"]:checked');
+  const status = statusEl ? statusEl.value : '';
+  const notes = document.getElementById('pbNotes').value;
+
+  const rows = document.querySelectorAll('#pbTableBody tr');
+  let itemsHtml = '';
+  rows.forEach(tr => {
+    const name = tr.querySelector('.pb-item-name').value;
+    const qty = tr.querySelector('.pb-qty').value;
+    const rate = tr.querySelector('.pb-rate').value;
+    const amt = tr.querySelector('.pb-amt').textContent;
+    if (name && qty) {
+      itemsHtml += `
+        <tr>
+          <td style="padding: 5px; border-bottom: 1px dotted #ccc;">${name}</td>
+          <td style="padding: 5px; border-bottom: 1px dotted #ccc; text-align: center;">${qty}</td>
+          <td style="padding: 5px; border-bottom: 1px dotted #ccc; text-align: center;">${rate}</td>
+          <td style="padding: 5px; border-bottom: 1px dotted #ccc; text-align: right;">${amt}</td>
+        </tr>
+      `;
+    }
+  });
+
+  if (itemsHtml === '') {
+    alert("Please add at least one item to print the bill.");
+    return;
+  }
+
+  const printWindow = window.open('', '_blank');
+  const printHtml = `
+  <html>
+    <head>
+      <title>Patient Bill</title>
+      <style>
+        @media print {
+          @page { margin: 0.5cm; }
+          body { -webkit-print-color-adjust: exact; margin: 0; }
+        }
+        body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 12px; color: #000; padding: 20px; max-width: 800px; margin: 0 auto; }
+        .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 15px; }
+        .logo-area { display: flex; align-items: center; gap: 15px; }
+        .logo { width: 60px; height: auto; }
+        .clinic-name { font-size: 20px; font-weight: bold; margin: 0; text-transform: uppercase; }
+        .title { font-size: 24px; font-weight: bold; margin: 0; }
+        .meta-info { display: flex; justify-content: space-between; margin-bottom: 15px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
+        th { background: #e2e8f0 !important; padding: 6px; font-size: 11px; text-transform: uppercase; border-bottom: 2px solid #000; text-align: left; -webkit-print-color-adjust: exact; color: #000; }
+        th.right { text-align: right; }
+        th.center { text-align: center; }
+        .totals { width: 250px; margin-left: auto; margin-bottom: 15px; }
+        .totals-row { display: flex; justify-content: space-between; padding: 4px 0; }
+        .totals-row.grand { font-size: 16px; font-weight: bold; border-top: 2px solid #000; padding-top: 6px; margin-top: 4px; }
+        .footer { font-size: 11px; border-top: 1px dashed #000; padding-top: 10px; display: flex; justify-content: space-between; }
+        .badge { padding: 3px 8px; border-radius: 4px; font-weight: bold; border: 1px solid #000; text-transform: uppercase; }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <div class="logo-area">
+          <img src="logo.jpeg" class="logo" alt="Logo">
+          <div>
+            <h1 class="clinic-name">Shehjar Medicate</h1>
+          </div>
+        </div>
+        <div>
+          <h2 class="title">INVOICE</h2>
+          <div style="text-align: right; margin-top: 5px;">Date: <strong>${billDate}</strong></div>
+        </div>
+      </div>
+      
+      <div class="meta-info">
+        <div>
+          <strong>Bill To:</strong><br>
+          <span style="font-size: 14px;">${patientName}</span>
+        </div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Item</th>
+            <th class="center" style="width: 80px;">Qty</th>
+            <th class="center" style="width: 80px;">Rate</th>
+            <th class="right" style="width: 100px;">Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${itemsHtml}
+        </tbody>
+      </table>
+
+      <div class="totals">
+        <div class="totals-row">
+          <span>Subtotal:</span>
+          <span>${subtotal}</span>
+        </div>
+        ${discAmt > 0 ? `
+        <div class="totals-row">
+          <span>Discount ${discPercent ? `(${discPercent}%)` : ''}:</span>
+          <span>-${discAmt}</span>
+        </div>` : ''}
+        <div class="totals-row grand">
+          <span>Total:</span>
+          <span>₹ ${finalTotal}</span>
+        </div>
+      </div>
+
+      <div class="footer">
+        <div>
+          ${status ? `<strong>Status:</strong> <span class="badge">${status}</span>` : ''}
+          ${notes ? `<br><br><strong>Note:</strong> ${notes}` : ''}
+        </div>
+        <div style="text-align: right;">
+          <br><br>
+          _________________________<br>
+          Authorized Signatory
+        </div>
+      </div>
+      <script>
+        window.onload = function() {
+          setTimeout(function() {
+            window.print();
+            window.close();
+          }, 500);
+        };
+      </script>
+    </body>
+  </html>
+  `;
+  printWindow.document.open();
+  printWindow.document.write(printHtml);
+  printWindow.document.close();
+};
 
