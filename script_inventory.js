@@ -1327,6 +1327,10 @@ window.addBulkEmptyRows = function (type) {
       `;
       if (window.reorderAddedRow) window.reorderAddedRow(tr);
       document.getElementById("billTableBody").insertBefore(tr, document.getElementById("inputRow"));
+      const newProductEl = tr.querySelector('.col-product');
+      if (newProductEl && typeof window.attachProductAutocomplete === 'function') {
+        window.attachProductAutocomplete(newProductEl);
+      }
     }
     calculateInventoryTotals();
 
@@ -1364,6 +1368,10 @@ window.addBulkEmptyRows = function (type) {
       `;
       if (window.reorderAddedSrRow) window.reorderAddedSrRow(tr);
       document.getElementById("srTableBody").insertBefore(tr, document.getElementById("srInputRow"));
+      const newProductEl = tr.querySelector('.col-product');
+      if (newProductEl && typeof window.attachProductAutocomplete === 'function') {
+        window.attachProductAutocomplete(newProductEl);
+      }
     }
     calculateSrTotals();
   }
@@ -1430,6 +1438,10 @@ window.addInventoryRow = async function () {
   `;
   if (window.reorderAddedRow) window.reorderAddedRow(tr);
   document.getElementById("billTableBody").insertBefore(tr, document.getElementById("inputRow"));
+  const newProductEl = tr.querySelector('.col-product');
+  if (newProductEl && typeof window.attachProductAutocomplete === 'function') {
+    window.attachProductAutocomplete(newProductEl);
+  }
   clearInventoryForm();
   calculateInventoryTotals();
 }
@@ -5908,33 +5920,56 @@ window.toggleBillRows = function (invId) {
     inputEl.value = pName;
     closeDropdown();
 
+    const isMainRow = (inputEl.id === 'invProductName');
+    const tr = !isMainRow ? inputEl.closest('tr') : null;
+
     // Helper – only fill if empty
-    function fillIfEmpty(id, val) {
-      const el = document.getElementById(id);
-      if (el && !el.value && val) el.value = val;
+    function fillIfEmpty(id, cls, val) {
+      let el = null;
+      if (isMainRow) {
+        el = document.getElementById(id);
+      } else if (tr && cls) {
+        el = tr.querySelector(cls);
+      }
+      if (el && !el.value && val) {
+        el.value = val;
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+      }
     }
 
-    fillIfEmpty('invPack', item.Pack || item.pack || '');
-    fillIfEmpty('invHSN', item.HSN || item.hsn || item.hsncode || '');
-    fillIfEmpty('invMRP', item.MRP || item.mrp || '');
-    fillIfEmpty('invBatch', item.Batch || item.batch || '');
-    fillIfEmpty('invExp', item.Exp || item.exp || item.Expiry || '');
-    fillIfEmpty('invDis', item.Dis || item.dis || item.Discount || '');
-    fillIfEmpty('invSGST', item.SGST || item.sgst || '');
-    fillIfEmpty('invSGSTAmt', item.SGSTAmt || item.sgstAmt || '');
-    fillIfEmpty('invCGST', item.CGST || item.cgst || '');
-    fillIfEmpty('invCGSTAmt', item.CGSTAmt || item.cgstAmt || '');
-    fillIfEmpty('invRate', item.Rate || item.rate || '');
-    fillIfEmpty('invCompany', item.Company || item.company || item.Mfg || '');
+    fillIfEmpty('invPack', '.col-pack', item.Pack || item.pack || '');
+    fillIfEmpty('invHSN', '.col-hsn', item.HSN || item.hsn || item.hsncode || '');
+    fillIfEmpty('invMRP', '.col-mrp', item.MRP || item.mrp || '');
+    fillIfEmpty('invBatch', '.col-batch', item.Batch || item.batch || '');
+    fillIfEmpty('invExp', '.col-exp', item.Exp || item.exp || item.Expiry || '');
+    fillIfEmpty('invDis', '.col-dis', item.Dis || item.dis || item.Discount || '');
+    fillIfEmpty('invSGST', '.col-sgst', item.SGST || item.sgst || '');
+    fillIfEmpty('invSGSTAmt', '.col-sgst-amt', item.SGSTAmt || item.sgstAmt || '');
+    fillIfEmpty('invCGST', '.col-cgst', item.CGST || item.cgst || '');
+    fillIfEmpty('invCGSTAmt', '.col-cgst-amt', item.CGSTAmt || item.cgstAmt || '');
+    fillIfEmpty('invRate', '.col-rate', item.Rate || item.rate || '');
+    fillIfEmpty('invCompany', '.col-company', item.Company || item.company || item.Mfg || '');
 
-    // Recalculate amount if Qty is already set
-    if (typeof window.calculateInvAmount === 'function') {
-      window.calculateInvAmount();
+    if (isMainRow) {
+      if (typeof window.calculateInvAmount === 'function') {
+        window.calculateInvAmount();
+      }
+      const qtyEl = document.getElementById('invQty');
+      if (qtyEl) qtyEl.focus();
+    } else {
+      const isSr = tr && tr.closest('#srTableBody');
+      if (isSr) {
+        if (typeof window.calculateAddedSrRowAmount === 'function') {
+          window.calculateAddedSrRowAmount(inputEl);
+        }
+      } else {
+        if (typeof window.calculateAddedRowAmount === 'function') {
+          window.calculateAddedRowAmount(inputEl);
+        }
+      }
+      const qtyEl = tr ? tr.querySelector('.col-qty') : null;
+      if (qtyEl) qtyEl.focus();
     }
-
-    // Move focus to Qty field for quick entry
-    const qtyEl = document.getElementById('invQty');
-    if (qtyEl) qtyEl.focus();
   }
 
   function attachTo(inputEl) {
